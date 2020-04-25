@@ -1,9 +1,9 @@
 pragma solidity ^0.6.0;
 
-library Example {
+library TestInput {
   enum ABC { a, b }
   
-  struct ExampleWrapped {
+  struct TestWrapped {
     uint32 a;
     bytes32 b;
     bytes32 c;
@@ -11,9 +11,9 @@ library Example {
     ABC e;
   }
 
-  struct ExampleWrapper {
-    ExampleWrapped a;
-    ExampleWrapped b;
+  struct TestWrapper {
+    TestWrapped a;
+    TestWrapped b;
     bytes32[3] x;
   }
 }

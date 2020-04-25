@@ -1,0 +1,212 @@
+[
+  {
+    "meta": "enum",
+    "name": "ABC",
+    "fields": [
+      "a",
+      "b"
+    ],
+    "dynamic": false,
+    "size": 8
+  },
+  {
+    "meta": "struct",
+    "size": 560,
+    "dynamic": false,
+    "name": "TestWrapped",
+    "fields": [
+      {
+        "name": "a",
+        "type": {
+          "meta": "elementary",
+          "dynamic": false,
+          "size": 32,
+          "type": "uint"
+        }
+      },
+      {
+        "name": "b",
+        "type": {
+          "meta": "elementary",
+          "dynamic": false,
+          "size": 256,
+          "type": "bytes"
+        }
+      },
+      {
+        "name": "c",
+        "type": {
+          "meta": "elementary",
+          "dynamic": false,
+          "size": 256,
+          "type": "bytes"
+        }
+      },
+      {
+        "name": "d",
+        "type": {
+          "meta": "elementary",
+          "dynamic": false,
+          "size": 8,
+          "type": "uint"
+        }
+      },
+      {
+        "name": "e",
+        "type": {
+          "meta": "enum",
+          "name": "ABC",
+          "fields": [
+            "a",
+            "b"
+          ],
+          "dynamic": false,
+          "size": 8
+        }
+      }
+    ]
+  },
+  {
+    "meta": "struct",
+    "size": 1888,
+    "dynamic": false,
+    "name": "TestWrapper",
+    "fields": [
+      {
+        "name": "a",
+        "type": {
+          "meta": "struct",
+          "size": 560,
+          "dynamic": false,
+          "name": "TestWrapped",
+          "fields": [
+            {
+              "name": "a",
+              "type": {
+                "meta": "elementary",
+                "dynamic": false,
+                "size": 32,
+                "type": "uint"
+              }
+            },
+            {
+              "name": "b",
+              "type": {
+                "meta": "elementary",
+                "dynamic": false,
+                "size": 256,
+                "type": "bytes"
+              }
+            },
+            {
+              "name": "c",
+              "type": {
+                "meta": "elementary",
+                "dynamic": false,
+                "size": 256,
+                "type": "bytes"
+              }
+            },
+            {
+              "name": "d",
+              "type": {
+                "meta": "elementary",
+                "dynamic": false,
+                "size": 8,
+                "type": "uint"
+              }
+            },
+            {
+              "name": "e",
+              "type": {
+                "meta": "enum",
+                "name": "ABC",
+                "fields": [
+                  "a",
+                  "b"
+                ],
+                "dynamic": false,
+                "size": 8
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "b",
+        "type": {
+          "meta": "struct",
+          "size": 560,
+          "dynamic": false,
+          "name": "TestWrapped",
+          "fields": [
+            {
+              "name": "a",
+              "type": {
+                "meta": "elementary",
+                "dynamic": false,
+                "size": 32,
+                "type": "uint"
+              }
+            },
+            {
+              "name": "b",
+              "type": {
+                "meta": "elementary",
+                "dynamic": false,
+                "size": 256,
+                "type": "bytes"
+              }
+            },
+            {
+              "name": "c",
+              "type": {
+                "meta": "elementary",
+                "dynamic": false,
+                "size": 256,
+                "type": "bytes"
+              }
+            },
+            {
+              "name": "d",
+              "type": {
+                "meta": "elementary",
+                "dynamic": false,
+                "size": 8,
+                "type": "uint"
+              }
+            },
+            {
+              "name": "e",
+              "type": {
+                "meta": "enum",
+                "name": "ABC",
+                "fields": [
+                  "a",
+                  "b"
+                ],
+                "dynamic": false,
+                "size": 8
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "x",
+        "type": {
+          "meta": "array",
+          "baseType": {
+            "meta": "elementary",
+            "dynamic": false,
+            "size": 256,
+            "type": "bytes"
+          },
+          "length": 3,
+          "dynamic": false,
+          "size": 768
+        }
+      }
+    ]
+  }
+]
