@@ -14,9 +14,10 @@ const example1 = `
 struct ExampleWrapper {
   uint32[2] x;
   bytes32[3] y;
+  uint56 a;
 }
 `;
 const structs1 = parseCode(example1);
 fs.writeFileSync('example-output-1.json', JSON.stringify(structs1, null, 2))
-const gen1 = UnpackerGen.createLibrary(`Example1`, <Array<AbiStruct | AbiEnum>> structs1);
+const gen1 = UnpackerGen.createLibrary(`Example1`, <Array<AbiStruct | AbiEnum>> structs1, { verbose: false });
 fs.writeFileSync('example-gen-1.sol', gen1);

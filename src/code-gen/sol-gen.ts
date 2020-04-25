@@ -4,8 +4,14 @@ import {
 
 import { isStructAllowed, getFieldConstructor, toTypeName, abiStructToSol, arrJoiner } from '../lib/helpers';
 
+export type SolGenOptions = {
+  /* Used to determine whether vars are explicitly defined or simply assigned directly to memory. */
+  verbose?: boolean
+}
+
 export class UnpackerGen {
   _inputOffset: number = 0;
+  outputOffset: number = 0;
   varDefs: string[] = [];
   codeChunks: ArrayJoinInput[] = [];
   asmLines: string[] = [
@@ -13,17 +19,19 @@ export class UnpackerGen {
   ];
   outputDef: string;
   struct: AbiStruct;
+  options?: SolGenOptions;
 
   get inputOffset(): number { return this._inputOffset / 8; }
   get ptr(): string { return this.inputOffset > 0 ? `add(ptr, ${this.inputOffset})` : `ptr`; }
+  get outPtr(): string { return this.outputOffset > 0 ? `add(ret, ${this.outputOffset})` : `ret`; }
   get mload(): string { return `mload(${this.ptr})`; }
 
-  static createLibrary(libraryName: string, structs: Array<AbiStruct | AbiEnum>): string {
+  static createLibrary(libraryName: string, structs: Array<AbiStruct | AbiEnum>, opts?: SolGenOptions): string {
     const arr = [];
     for (let struct of structs) arr.push(
       struct.meta == 'enum'
         ? abiStructToSol(struct)
-        : new UnpackerGen(struct).toUnpack(true)
+        : new UnpackerGen(struct, opts).toUnpack(true)
     )
     return arrJoiner([
       `pragma solidity ^0.6.0;`,
@@ -34,14 +42,14 @@ export class UnpackerGen {
     ])
   }
 
-  constructor(struct: AbiStruct) {
+  constructor(struct: AbiStruct, opts: SolGenOptions = { verbose: true }) {
+    this.options = opts;
     if (!isStructAllowed(struct)) {
       console.log(struct.name)
       throw new Error(`Dynamic structs must only contain dynamic fields as the last value.`)
     }
     this.struct = struct;
     for (let field of struct.fields) this.addUnpackField(field);
-    this.outputDef = getFieldConstructor(struct);
   }
 
   putAsm = (line: string) => this.asmLines.push(line);
@@ -56,14 +64,22 @@ export class UnpackerGen {
   toUnpack(returnArray?: boolean): ArrayJoinInput {
     const { name } = this.struct;
     this.nextCodeChunk();
+    let retVar: string, retLine: string | null;
+    if (!this.options.verbose && !this.struct.dynamic) {
+      retVar = `${name} memory ret`;
+      retLine = null;
+    } else {
+      retVar = `${name} memory`;
+      retLine = `return ${getFieldConstructor(this.struct)};`;
+    }
     const arr = [
       ...abiStructToSol(this.struct),
       '',
       `function unpack${name}(bytes memory input)`,
-      `internal pure returns (${name} memory) {`,
+      `internal pure returns (${retVar}) {`,
       this.varDefs,
       this.codeChunks,
-      [`return ${this.outputDef};`],
+      [retLine],
       '}'
     ]
     return returnArray ? arr : arrJoiner(arr);
@@ -78,17 +94,31 @@ export class UnpackerGen {
   }
 
   putAsmReadCode(def: AbiElementaryType | AbiEnum, name: string) {
-    this.varDefs.push(`${toTypeName(def)} ${name};`);
-    this.putAsm(`${name} := ${this.getShiftedSizeReader(def.size)}`);
+    let _reader = this.getShiftedSizeReader(def.size);
+    if (!this.options.verbose && !this.struct.dynamic) {
+      this.putAsm(`mstore(${this.outPtr}, ${_reader})`)
+      this.outputOffset += 32;
+    } else {
+      this.putAsm(`${name} := ${_reader}`);
+      this.varDefs.push(`${toTypeName(def)} ${name};`);
+    }
     this._inputOffset += def.size;
   }
 
   putArrayReadCode(def: AbiArray, name: string) {
-    this.varDefs.push(`${toTypeName(def)} memory ${name};`);
     const size = def.baseType.size;
+    if (this.options.verbose || this.struct.dynamic) {
+      this.varDefs.push(`${toTypeName(def)} memory ${name};`);
+    }
     if (def.length && size) {
       for (let i = 0; i < def.length; i++) {
-        let ptr = i == 0 ? name : `add(${name}, ${32 * i})`;
+        let ptr: string;
+        if (!this.options.verbose && !this.struct.dynamic) {
+          ptr = this.outPtr;
+          this.outputOffset += 32;
+        } else {
+          ptr = i == 0 ? name : `add(${name}, ${32 * i})`;
+        }
         this.putAsm(`mstore(${ptr}, ${this.getShiftedSizeReader(size)})`)
         this._inputOffset += size;
       }
