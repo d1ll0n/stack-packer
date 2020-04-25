@@ -1,5 +1,5 @@
 {
-  "name": "abi-packer",
+  "name": "abi-codegen",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,7 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "solidity-parser-antlr": "^0.4.11"
+    "solidity-parser-antlr": "^0.4.11",
+    "yargs": "^15.3.1"
   },
   "devDependencies": {
     "@types/node": "^13.13.2"
