@@ -35,6 +35,15 @@ export const elementaryToTypeDef = (typeName: string): AbiType => {
       type: 'bytes'
     }
   }
+  const isAddress = /address/g.exec(typeName);
+  if (isAddress) {
+    return {
+      meta: 'elementary',
+      dynamic: false,
+      size: 160,
+      type: 'address'
+    }
+  }
 }
 
 export const toTypeName = (def: AbiType): string => {
@@ -44,6 +53,7 @@ export const toTypeName = (def: AbiType): string => {
       case 'bool': return `bool`;
       case 'byte': return `byte`;
       case 'bytes': return `bytes${def.size / 8}`;
+      case 'address': return 'address';
     }
   }
   if (def.meta == 'array') return `${toTypeName(def.baseType)}[${def.length || ''}]`;
@@ -75,6 +85,7 @@ export const scopedName = (def: AbiStructField, scopeName?: string): string => [
 export function arrJoiner(arr: ArrayJoinInput) {
   const ret: string[] = [];
   const doMap = (subArr: ArrayJoinInput<string>, depth = 0) => {
+    if (subArr == null || subArr == undefined) return;
     if (Array.isArray(subArr)) for (let x of subArr) doMap(x, depth + 1);
     else if (subArr.length > 0) ret.push(`${'\t'.repeat(depth)}${subArr}`)
     else ret.push('');
