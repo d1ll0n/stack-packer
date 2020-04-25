@@ -82,7 +82,7 @@ export function parseCode(sourceCode: string): AbiType[] {
   if (!(/pragma solidity/g.exec(sourceCode))) {
     sourceCode = ['pragma solidity ^0.6.0;', '', sourceCode].join('\n');
   }
-  if (!(/(library | contract)/g.exec(sourceCode))) {
+  if (!(/(library {|contract {)/g.exec(sourceCode))) {
     sourceCode = ['library TmpLib {', sourceCode, '}'].join('\n');
   }
   const input = Parser.parseFile(sourceCode);
