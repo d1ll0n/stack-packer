@@ -19,7 +19,7 @@ export type AbiArray = {
   size?: number;
 }
 
-export type BasicElementaryType = 'bool' | 'byte' | 'bytes' | 'uint';
+export type BasicElementaryType = 'bool' | 'byte' | 'bytes' | 'uint' | 'address';
 
 export type AbiElementaryType = {
   meta: 'elementary';
