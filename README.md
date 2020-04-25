@@ -6,12 +6,13 @@ Currently supports generation of solidity code for packed decoding on statically
 See test/test.ts for an example.
 
 # Command Line
-> abi-codegen --input ./Structs.sol --output ./StructLib.sol
+> abi-codegen --input <input_file> --output <output_file> [flags]
 
+## Flags
 **--verbose**
 Tells the code generator to explicitly define variables and construct the output rather than assigning directly to memory.
 
-## Examples
+# Examples
 **Input Struct**
 ```
 struct TestWrapped {
