@@ -26,7 +26,6 @@ export const elementaryToTypeDef = (typeName: string): AbiType => {
   }
   const isBytes = /bytes(\d{0,2})/g.exec(typeName);
   if (isBytes) {
-    console.log(`got bytes -- ${isBytes[0]} -- size ${8 * +isBytes[1]}`)
     const size = isBytes[1];
     return {
       meta: 'elementary',
@@ -87,11 +86,14 @@ export function arrJoiner(arr: ArrayJoinInput) {
   const doMap = (subArr: ArrayJoinInput<string>, depth = 0) => {
     if (subArr == null || subArr == undefined) return;
     if (Array.isArray(subArr)) for (let x of subArr) doMap(x, depth + 1);
-    else if (subArr.length > 0) ret.push(`${'\t'.repeat(depth)}${subArr}`)
-    else ret.push('');
+    else if (typeof subArr == 'string') {
+      if (subArr.length > 0) ret.push(`${'\t'.repeat(depth)}${subArr}`)
+      else ret.push('');
+    }
   }
   for (let x of arr) doMap(x);
-  return ret.join(`\n`)
+  if (ret[ret.length - 1] == '' || ret[ret.length-1] == '\n') ret.pop();
+  return ret.join(`\n`);
 }
 
 /**
