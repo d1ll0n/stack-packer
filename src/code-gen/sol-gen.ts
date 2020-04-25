@@ -33,11 +33,12 @@ export class UnpackerGen {
         ? abiStructToSol(struct)
         : new UnpackerGen(struct, opts).toUnpack(true)
     )
+    let lib = arr.map((x, i) => ([...x, (i != arr.length - 1 && '')]));
     return arrJoiner([
       `pragma solidity ^0.6.0;`,
       '',
       `library ${libraryName} {`,
-      ...(arr.map(x => ([...x, '']))),
+      ...lib,
       `}`
     ])
   }
