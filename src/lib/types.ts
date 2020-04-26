@@ -32,7 +32,7 @@ export type AbiEnum = {
   meta: 'enum';
   name: string;
   fields: string[];
-  dynamic?: boolean;
+  dynamic: false;
   size?: number;
 }
 
