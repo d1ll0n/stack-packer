@@ -14,7 +14,7 @@ export const elementaryToTypeDef = (typeName: string): AbiType => {
     size: 8,
     type: 'bool'
   }
-  const isUint = /uint(\d{0,2})/g.exec(typeName);
+  const isUint = /uint(\d{0,3})/g.exec(typeName);
   if (isUint) {
     const size = isUint[1];
     return {
