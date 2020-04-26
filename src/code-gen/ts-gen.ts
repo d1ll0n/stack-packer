@@ -108,7 +108,8 @@ export const toInterfaceType = (def: AbiType, input?: boolean): string => {
 
 export const buildLibrary = (defs: Array<AbiStruct | AbiEnum>): { code: string, json: Array<{fileName: string, json: string}> } => {
   const arr = [
-    `import {defineProperties} from 'ts-abi-utils';`
+    `import {defineProperties} from 'ts-abi-utils';`,
+    `import BN from 'bn.js`
   ];
   let json = [];
   for (let def of defs) {
