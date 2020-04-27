@@ -47,7 +47,6 @@ export type TypeDependency = {
 class TypeScriptBuilder {
   typeDependencies: TypeDependency[] = [];
   usesBN?: boolean;
-  constructorArr: ArrayJoinInput = [];
   _inputFields?: ArrayJoinInput;
   _interfaceFields?: ArrayJoinInput;
   _structFields?: AbiStructField[];
@@ -59,7 +58,7 @@ class TypeScriptBuilder {
   }
 
   putDependency = (name: string, isEnum?: boolean) => {
-    if (this.typeDependencies.filter(t => t.name == name)) return;
+    if (this.typeDependencies.filter(t => t.name == name).length) return;
     this.typeDependencies.push({ name, isEnum });
   }
 
@@ -120,7 +119,7 @@ class TypeScriptBuilder {
   }
 
   get imports() {
-    const _def = `import {defineProperties} from 'ts-abi-utils';`;
+    const _def = `import { defineProperties } from 'ts-abi-utils';`;
     const _deps = this.typeDependencies.map(({ name, isEnum }) =>
       `import { ${name} ${isEnum ? '' : `, ${name}Data`}} from './${name}';`
     );
@@ -180,14 +179,18 @@ class TypeScriptBuilder {
     if (struct.meta == 'enum') {
       return arrJoiner([`export enum ${struct.name} {`, struct.fields, `}`]);
     }
+    const _data = builder.dataInterfaceDeclaration;
+    const _interface = builder.interfaceDeclaration;
+    const _class = builder.classDeclaration;
+    const _imports = builder.imports;
     const arr = [
-      ...builder.imports,
+      ..._imports,
       '',
-      ...builder.dataInterfaceDeclaration,
+      ..._data,
       '',
-      ...builder.interfaceDeclaration,
+      ..._interface,
       '',
-      ...builder.classDeclaration,
+      ..._class,
       `defineProperties(${struct.name}, ${struct.name}ABI);`
     ];
     return arrJoiner(arr);

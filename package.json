@@ -1,6 +1,6 @@
 {
-  "name": "abi-codegen",
-  "version": "1.0.0",
+  "name": "abi-gen",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "bin": "dist/cli.js",
@@ -12,6 +12,10 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "homepage": "https://github.com/d1ll0n/abi-codegen",
+  "bugs": {
+    "url": "https://github.com/d1ll0n/abi-codegen/issues"
+  },
   "dependencies": {
     "solidity-parser-antlr": "^0.4.11",
     "ts-abi-utils": "^1.0.0",
