@@ -35,7 +35,9 @@ Save the above in `./input`.
 > abi-gen sol -i ./input -o ./output.sol
 
 *I still need to add handling to use the right library name instead of making one up.*
+
 **Output**
+
 ```cs
 pragma solidity ^0.6.0;
 
@@ -66,7 +68,9 @@ library OutputCode {
 
 ## TypeScript
 > abi-gen ts -i ./input -o ./output-dir
+
 A number of files will be created, but the main output will be:
+
 ```ts
 import {defineProperties} from 'ts-abi-utils';
 import { ABC } from './ABC';
