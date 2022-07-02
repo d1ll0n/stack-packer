@@ -80,20 +80,31 @@ For example, the `balance` field will be accessible with the following two funct
                       User.balance coders
 //////////////////////////////////////////////////////////////*/
 
-function getBalance(User encoded) internal pure returns (uint256 _balance) {
+function getBalance(User encoded)
+  internal
+  pure
+  returns (uint256 _balance)
+{
   assembly {
     _balance := shr(User__balance_bitsAfter, encoded)
   }
 }
 
-function setBalance(User old, uint256 _balance) internal pure returns (User updated) {
+function setBalance(User old, uint256 _balance)
+  internal
+  pure
+  returns (User updated)
+{
   assembly {
     if gt(_balance, MaxUint128) {
       mstore(0, Panic_error_signature)
       mstore(Panic_error_offset, Panic_error_length)
       revert(0, Panic_arithmetic)
     }
-    updated := or(and(old, User__balance_maskOut), shl(User__balance_bitsAfter, _balance))
+    updated := or(
+      and(old, User__balance_maskOut),
+      shl(User__balance_bitsAfter, _balance)
+    )
   }
 }
 ```
@@ -140,15 +151,25 @@ function setFees(
     }
     updated := or(
       and(old, ExchangeConfig_Fees_maskOut),
-      or(shl(ExchangeConfig_buyFeeBips_bitsAfter, buyFeeBips), shl(ExchangeConfig_sellFeeBips_bitsAfter, sellFeeBips))
+      or(
+        shl(ExchangeConfig_buyFeeBips_bitsAfter, buyFeeBips),
+        shl(ExchangeConfig_sellFeeBips_bitsAfter, sellFeeBips)
+      )
     )
   }
 }
 
-function getFees(ExchangeConfig encoded) internal pure returns (uint256 buyFeeBips, uint256 sellFeeBips) {
+function getFees(ExchangeConfig encoded)
+  internal
+  pure
+  returns (uint256 buyFeeBips, uint256 sellFeeBips)
+{
   assembly {
     buyFeeBips := shr(ExchangeConfig_buyFeeBips_bitsAfter, encoded)
-    sellFeeBips := and(MaskOnlyLastTwoBytes, shr(ExchangeConfig_sellFeeBips_bitsAfter, encoded))
+    sellFeeBips := and(
+      MaskOnlyLastTwoBytes,
+      shr(ExchangeConfig_sellFeeBips_bitsAfter, encoded)
+    )
   }
 }
 ```
