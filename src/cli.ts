@@ -32,7 +32,7 @@ const getFiles = (argv: { input: string }): FileWithStructs[] => {
   }
   for (const filePath of filePaths) {
     const { name } = path.parse(filePath);
-    const code = fs.readFileSync(argv.input, 'utf8');
+    const code = fs.readFileSync(filePath, 'utf8');
     const structs = parseCode(code) as Array<AbiStruct | AbiEnum>;
     files.push({ fileName: name, structs })
   }
@@ -112,11 +112,12 @@ yargs
       
       for (const inputFile of inputFiles) {
         let outputFile = argv.output;
+        const { code, libraryName } = UnpackerGen.createLibrary(inputFile.structs, options);
         if (!isSolFile(outputFile)) {
-          outputFile = path.join(outputFile, `${inputFile.fileName}Coder.sol`) ;
+          const outputName = libraryName || `${inputFile.fileName}Coder`;
+          outputFile = path.join(outputFile, `${outputName}.sol`) ;
         }
-        const lib = UnpackerGen.createLibrary(inputFile.structs, options);
-        fs.writeFileSync(outputFile, lib);
+        fs.writeFileSync(outputFile, code);
       }
     }
   )

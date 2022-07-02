@@ -1,6 +1,5 @@
 // const strip = require('strip-comments');
-import { AbiStruct, AbiEnum, ArrayJoinInput } from '../types';
-import './str';
+import { AbiStruct, AbiEnum } from '../types';
 import { arrJoiner } from '../lib/text';
 import { toTypeName, abiStructToSol, processFields, separateGroups } from './fields';
 import {
@@ -87,7 +86,10 @@ export function generateCoderLibrary(struct: AbiStruct, opts: GeneratorOptions) 
 }
 
 export class UnpackerGen {
-	static createLibrary(structsAndEnums: Array<AbiStruct | AbiEnum>, opts: GeneratorOptions): {string} {
+	static createLibrary(structsAndEnums: Array<AbiStruct | AbiEnum>, opts: GeneratorOptions): {
+    code: string;
+    libraryName?: string;
+  } {
 		const libraryCode: string[] = [];
 		for (let structOrEnum of structsAndEnums) {
 			if (structOrEnum.dynamic) {
@@ -108,7 +110,7 @@ export class UnpackerGen {
 		if (libraryCode.length && libraryCode[libraryCode.length - 1] === '') {
 			libraryCode.pop();
 		}
-    const code = arrJoiner([
+    let code = arrJoiner([
       '// SPDX-License-Identifier: MIT',
       `pragma solidity >=0.8.0;`,
       '',
@@ -116,8 +118,14 @@ export class UnpackerGen {
       '',
       ...libraryCode,
     ])
-		return prettierFormat(
+		code = prettierFormat(
 			opts.noComments ? strip(code) : code
 		);
+    const structs = structsAndEnums.filter(f => f.meta === 'struct');
+    const libraryName = structs.length === 1 && `${structs[0].name}Coder`;
+    return {
+      code,
+      libraryName
+    }
 	}
 }
