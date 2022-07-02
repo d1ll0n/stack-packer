@@ -28,7 +28,7 @@ Modified from [abi-codegen](https://github.com/d1ll0n/abi-codegen), an in-memory
 - [Grouping](#grouping)
 
 ## Install
-`$ npm install -g abi-gen`
+`$ npm install -g stack-packer`
 
 ## Summary
 
