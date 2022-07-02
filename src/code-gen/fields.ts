@@ -79,8 +79,10 @@ export const getFieldSetterName = (field: ProcessedField) =>
 export const getFieldGetterName = (field: ProcessedField) =>
   `get${field.originalName.toPascalCase()}`;
 
-export const getParameterDefinition = (field: AbiStructField, oversized: boolean) =>
-  `${(oversized && field.type.meta === 'elementary') ? 'uint256' : toTypeName(field.type)} ${field.name}`
+export const getParameterDefinition = (field: AbiStructField, oversized: boolean) => {
+  const typeName = toTypeName(field.type);
+  return `${(oversized && typeName.includes('uint')) ? 'uint256' : toTypeName(field.type)} ${field.name}`
+}
 
 export function processFields(
   struct: AbiStruct,
@@ -99,7 +101,8 @@ export function processFields(
       struct,
       field,
       offset,
-      context
+      context,
+      originalName
     );
     withExtras.push({
       ...field,
@@ -123,14 +126,15 @@ export const getSetField = (
   struct: AbiStruct,
   field: AbiStructField,
   offset: number,
-  context: FileContext
+  context: FileContext,
+  originalName: string
 ) => {
   if (field.type.meta !== "elementary" && field.type.meta !== "enum") throw Error("Unsupported field!");
-  const constantsPrefix = `${struct.name}_${field.name}`;
+  const constantsPrefix = `${struct.name}_${originalName}`;
   const size = field.type.size;
   const bitsAfter = 256 - (offset + size);
   
-  const omitMaskName = `${struct.name}_${field.name}_maskOut`;
+  const omitMaskName = `${constantsPrefix}_maskOut`;
   const omitMask = getOmissionMask(offset, size)
   const maskReference = context.addConstant(omitMaskName, omitMask);
   const oldValueRemoved = `and(old, ${maskReference})`;
