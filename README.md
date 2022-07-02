@@ -56,7 +56,7 @@ This can not be used with `--exact`, and it is highly recommended that you never
 
 Save this file to `User.sol`
 
-```solidity=
+```solidity
 contract UserContract {
   struct User {
     uint128 balance;
@@ -75,7 +75,7 @@ A file will be generated at `UserCoder.sol` with a `UserCoder` library including
 
 For example, the `balance` field will be accessible with the following two functions:
 
-```solidity=
+```solidity
 /*//////////////////////////////////////////////////////////////
                       User.balance coders
 //////////////////////////////////////////////////////////////*/
@@ -106,7 +106,7 @@ The syntax for grouping is to add `_group_GroupName` after the field name. You c
 
 Create a file `ExchangeConfig.sol` and paste this Solidity code:
 
-```sol
+```solidity
 contract ExchangeConfigContract {
   struct ExchangeConfig {
     uint16 buyFeeBips_group_Fees_group_Buy;
