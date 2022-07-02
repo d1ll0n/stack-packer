@@ -92,7 +92,7 @@ Use exact type sizes in function getters and setters, e.g. `uint24` instead of `
 
 If this is false, setters will accept `uint256` inputs but will check inputs for overflow.
 
-**--inline, -in**
+**--inline, -l**
 
 Inline all constants rather than defining them separately. Default false.
 
@@ -101,6 +101,13 @@ Inline all constants rather than defining them separately. Default false.
 Remove overflow checks from setters while still allowing oversized inputs. Default false.
 
 This can not be used with `--exact`, and it is highly recommended that you never set this flag.
+
+**--noComments, -n**
+
+Removes:
+- notice that the contract was made with a generator
+- section separation comments
+- struct definition comment at the top of the file
 
 ## Basic example
 
