@@ -16,9 +16,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "homepage": "https://github.com/d1ll0n/abi-codegen",
+  "homepage": "https://github.com/d1ll0n/stack-packer",
   "bugs": {
-    "url": "https://github.com/d1ll0n/abi-codegen/issues"
+    "url": "https://github.com/d1ll0n/stack-packer/issues"
   },
   "dependencies": {
     "@types/lodash": "^4.14.182",
