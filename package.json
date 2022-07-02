@@ -2,7 +2,6 @@
   "name": "stack-packer",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "bin": "dist/cli.js",
   "files": ["dist"],
   "scripts": {
