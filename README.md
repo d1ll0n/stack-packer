@@ -135,36 +135,46 @@ A file will be generated at `UserCoder.sol` with a `UserCoder` library including
 For example, the `balance` field will be accessible with the following two functions:
 
 ```solidity
-/*//////////////////////////////////////////////////////////////
-                      User.balance coders
-//////////////////////////////////////////////////////////////*/
+type User is uint256;
 
-function getBalance(User encoded)
-  internal
-  pure
-  returns (uint256 _balance)
-{
-  assembly {
-    _balance := shr(User__balance_bitsAfter, encoded)
-  }
-}
+...
 
-function setBalance(User old, uint256 _balance)
-  internal
-  pure
-  returns (User updated)
-{
-  assembly {
-    if gt(_balance, MaxUint128) {
-      mstore(0, Panic_error_signature)
-      mstore(Panic_error_offset, Panic_error_length)
-      revert(0, Panic_arithmetic)
+library UserCoder {
+  ...
+
+  /*//////////////////////////////////////////////////////////////
+                        User.balance coders
+  //////////////////////////////////////////////////////////////*/
+
+  function getBalance(User encoded)
+    internal
+    pure
+    returns (uint256 _balance)
+  {
+    assembly {
+      _balance := shr(User__balance_bitsAfter, encoded)
     }
-    updated := or(
-      and(old, User__balance_maskOut),
-      shl(User__balance_bitsAfter, _balance)
-    )
   }
+
+  function setBalance(User old, uint256 _balance)
+    internal
+    pure
+    returns (User updated)
+  {
+    assembly {
+      if gt(_balance, MaxUint128) {
+        mstore(0, Panic_error_signature)
+        mstore(Panic_error_offset, Panic_error_length)
+        revert(0, Panic_arithmetic)
+      }
+      updated := or(
+        and(old, User__balance_maskOut),
+        shl(User__balance_bitsAfter, _balance)
+      )
+    }
+  }
+
+  ...
 }
 ```
 
@@ -193,42 +203,52 @@ Run:
 The `ExchangeConfigCoder.sol` file will include grouped functions for `Fees`, `Buy` and `Sell`. Now governance can update the fee bips without needing to decode the total fees, the buy and sell functions can read the appropriate fee bips and the previous total without decoding the parameters for the other side, etc.
 
 ```solidity
-/*//////////////////////////////////////////////////////////////
-                  ExchangeConfig Fees Group
-//////////////////////////////////////////////////////////////*/
+type User is uint256;
 
-function setFees(
-  ExchangeConfig old,
-  uint256 buyFeeBips,
-  uint256 sellFeeBips
-) internal pure returns (ExchangeConfig updated) {
-  assembly {
-    if or(gt(buyFeeBips, MaxUint16), gt(sellFeeBips, MaxUint16)) {
-      mstore(0, Panic_error_signature)
-      mstore(Panic_error_offset, Panic_error_length)
-      revert(0, Panic_arithmetic)
-    }
-    updated := or(
-      and(old, ExchangeConfig_Fees_maskOut),
-      or(
-        shl(ExchangeConfig_buyFeeBips_bitsAfter, buyFeeBips),
-        shl(ExchangeConfig_sellFeeBips_bitsAfter, sellFeeBips)
+...
+
+library UserCoder {
+  ...
+
+  /*//////////////////////////////////////////////////////////////
+                    ExchangeConfig Fees Group
+  //////////////////////////////////////////////////////////////*/
+
+  function setFees(
+    ExchangeConfig old,
+    uint256 buyFeeBips,
+    uint256 sellFeeBips
+  ) internal pure returns (ExchangeConfig updated) {
+    assembly {
+      if or(gt(buyFeeBips, MaxUint16), gt(sellFeeBips, MaxUint16)) {
+        mstore(0, Panic_error_signature)
+        mstore(Panic_error_offset, Panic_error_length)
+        revert(0, Panic_arithmetic)
+      }
+      updated := or(
+        and(old, ExchangeConfig_Fees_maskOut),
+        or(
+          shl(ExchangeConfig_buyFeeBips_bitsAfter, buyFeeBips),
+          shl(ExchangeConfig_sellFeeBips_bitsAfter, sellFeeBips)
+        )
       )
-    )
+    }
   }
-}
 
-function getFees(ExchangeConfig encoded)
-  internal
-  pure
-  returns (uint256 buyFeeBips, uint256 sellFeeBips)
-{
-  assembly {
-    buyFeeBips := shr(ExchangeConfig_buyFeeBips_bitsAfter, encoded)
-    sellFeeBips := and(
-      MaskOnlyLastTwoBytes,
-      shr(ExchangeConfig_sellFeeBips_bitsAfter, encoded)
-    )
+  function getFees(ExchangeConfig encoded)
+    internal
+    pure
+    returns (uint256 buyFeeBips, uint256 sellFeeBips)
+  {
+    assembly {
+      buyFeeBips := shr(ExchangeConfig_buyFeeBips_bitsAfter, encoded)
+      sellFeeBips := and(
+        MaskOnlyLastTwoBytes,
+        shr(ExchangeConfig_sellFeeBips_bitsAfter, encoded)
+      )
+    }
   }
+
+  ...
 }
 ```
