@@ -4,10 +4,12 @@
   "description": "",
   "main": "index.js",
   "bin": "dist/cli.js",
+  "files": ["dist"],
   "scripts": {
     "mocha:ts": "mocha -r ts-node/register",
     "test": "yarn mocha:ts ./test/test.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "prepublish": "yarn build"
   },
   "keywords": [],
   "author": "",
