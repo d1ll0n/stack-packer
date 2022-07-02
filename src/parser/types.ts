@@ -18,7 +18,9 @@ export type StructField = {
   typeName: TypeName;
 }
 
-export type DefinedType = EnumType | StructType;
+export type DefinedType<AllowFunctions extends true|false = false> = AllowFunctions extends true
+  ? EnumType | StructType | FunctionType
+  : EnumType | StructType;
 
 export type EnumType = {
   type: 'EnumDefinition';
@@ -32,4 +34,8 @@ export type StructType = {
   name: string;
   namePath: string;
   fields: Array<StructField>;
+}
+
+export type FunctionType = Omit<StructType, "type"> & {
+  type: "FunctionDefinition";
 }

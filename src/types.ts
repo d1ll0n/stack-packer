@@ -1,19 +1,21 @@
-export type AbiStructField = {
+
+export type AbiStructField<T extends string | string[] = string[]> = {
   name: string;
   type: AbiType;
+  group?: T;
 }
 
-export type AbiStruct = {
+export type AbiStruct<T extends string | string[] = string[]> = {
   meta: 'struct';
   name: string;
-  fields: AbiStructField[];
+  fields: AbiStructField<T>[];
   dynamic?: boolean;
   size?: number;
 }
 
-export type AbiArray = {
+export type AbiArray<T extends string | string[] = string[]> = {
   meta: 'array';
-  baseType: AbiType;
+  baseType: AbiType<T>;
   length?: number;
   dynamic?: boolean;
   size?: number;
@@ -36,7 +38,7 @@ export type AbiEnum = {
   size?: number;
 }
 
-export type AbiType = AbiStruct | AbiArray | AbiElementaryType | AbiEnum;
+export type AbiType<T extends string | string[] = string[]> = AbiStruct<T> | AbiArray<T> | AbiElementaryType | AbiEnum;
 
 export type ArrayJoinInput<T = string> = Array<ArrayJoinInput<T>> | Array<T> | T;
 

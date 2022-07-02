@@ -2,85 +2,127 @@
 import fs from 'fs';
 import path from 'path';
 import { parseCode } from './parser/index';
-import { UnpackerGen } from './code-gen/sol-gen';
-import { buildLibrary } from './code-gen/ts-gen';
-import { AbiStruct, AbiEnum } from './lib/types';
+import { UnpackerGen } from './code-gen/word-packer';
+import { AbiStruct, AbiEnum } from './types';
+import yargs from 'yargs'
 
-const argv = require('yargs')
-  .usage('Usage: <lang> [options]')
-  .command({
-    command: 'sol',
-    describe: 'generate solidity library',
-    builder: {
+type FileWithStructs = { fileName: string; structs: Array<AbiStruct | AbiEnum> }
+
+const isSolFile = (_path: string) => path.parse(_path).ext === '.sol';
+
+const isDir = (_path: string) => fs.lstatSync(_path).isDirectory();
+
+const getFiles = (argv: { input: string }): FileWithStructs[] => {
+  if (!fs.existsSync(argv.input)) {
+    throw new Error(`File or directory not found: ${argv.input}`);
+  }
+  const files: FileWithStructs[] = [];
+  const filePaths: string[] = [];
+  if (isDir(argv.input)) {
+    const fileNames = fs.readdirSync(argv.input).filter(isSolFile);
+    for (const fileName of fileNames) {
+      const filePath = path.join(argv.input, fileName);
+      filePaths.push(filePath);
+    }
+  } else {
+    if (!isSolFile(argv.input)) {
+      throw new Error(`${argv.input} is not a Solidity file`)
+    }
+    filePaths.push(argv.input);
+  }
+  for (const filePath of filePaths) {
+    const { name } = path.parse(filePath);
+    const code = fs.readFileSync(argv.input, 'utf8');
+    const structs = parseCode(code) as Array<AbiStruct | AbiEnum>;
+    files.push({ fileName: name, structs })
+  }
+  return files;
+}
+
+yargs
+  .command(
+    '$0 <input> [output]',
+    'Generate Solidity libraries for packed encoding of types on the stack.',
+    {
       input: {
         alias: ['i'],
-        describe: 'input file or directory to read solidity structs from',
+        describe: 'Input file or directory to read solidity structs from.',
         demandOption: true,
         coerce: path.resolve
       },
       output: {
-        alias: ['o', 'outDir'],
-        describe: 'file or directory to write generated code to',
-        demandOption: true,
+        alias: ['o'],
+        describe: 'File or directory to write generated code to. Defaults to current working directory.',
+        // default: () => process.cwd(),
+        demandOption: false,
         coerce: path.resolve
       },
-      verbose: {
-        alias: 'v',
-        describe: 'code verbosity',
+      exact: {
+        alias: 'e',
+        describe: 'Use exact type sizes for inputs/outputs and remove overflow checks.',
+        default: false,
+        type: 'boolean'
+      },
+      inline: {
+        alias: 'l',
+        describe: 'Inline all constants instead of explicitly defining them.',
+        default: false,
+        type: 'boolean'
+      },
+      unsafe: {
+        alias: 'u',
+        describe: 'Remove all overflow checks while still using inexact sizes for parameters. Do not do this unless you are sure you have already checked for overflows.',
+        default: false,
+        type: 'boolean'
+      },
+      noComments: {
+        alias: 'n',
+        describe: 'Remove all comments, including the generator notice, section separators and code summaries',
         default: false,
         type: 'boolean'
       }
-    }
-  })
-  .command({
-    command: 'ts',
-    describe: 'generate typescript library',
-    builder: {
-      input: {
-        alias: ['i'],
-        describe: 'input file to read structs from',
-        demandOption: true,
-        coerce: path.resolve
-      },
-      output: {
-        alias: 'o',
-        describe: 'directory to write generated code to',
-        demandOption: true,
-        coerce: path.resolve
-      },
-      verbose: {
-        alias: 'v',
-        describe: 'code verbosity',
-        default: false,
-        type: 'boolean'
+    },
+    ({inline, exact, unsafe, noComments,  ...argv}) => {
+      if (unsafe) {
+        if (exact) {
+          throw Error('Can not use --unsafe command when --exact flag is set')
+        }
+        console.log(`Generating library with unsafe casting.\nHope you know what you're doing...`)
+      }
+      const inputFiles = getFiles(argv);
+
+      if (argv.output) {
+        if (isSolFile(argv.output)) {
+          if (inputFiles.length > 1) {
+            throw new Error('Can not specify file output with directory input')
+          }
+        } else if (!fs.existsSync(argv.output)) {
+          fs.mkdirSync(argv.output);
+        }
+      } else {
+        argv.output = process.cwd();
+      }
+      const options = {
+        inline,
+        oversizedInputs: !exact,
+        unsafe,
+        noComments
+      };
+      console.log(options)
+      
+      for (const inputFile of inputFiles) {
+        let outputFile = argv.output;
+        if (!isSolFile(outputFile)) {
+          outputFile = path.join(outputFile, `${inputFile.fileName}Coder.sol`) ;
+        }
+        const lib = UnpackerGen.createLibrary(inputFile.structs, options);
+        fs.writeFileSync(outputFile, lib);
       }
     }
-  })
+  )
   .help('h')
   .fail(function(msg, err) {
     console.error(msg);
     process.exit(1);
   })
   .argv;
-
-if (!fs.existsSync(argv.input)) throw new Error(`File not found: ${argv.input}`);
-const code = fs.readFileSync(argv.input, 'utf8');
-const structs = <Array<AbiStruct | AbiEnum>> parseCode(code);
-
-if (argv._.includes('sol')) {
-  const lib = UnpackerGen.createLibrary('OutputCode', structs, { verbose: argv.verbose });
-  fs.writeFileSync(argv.output, lib);
-}
-
-if (argv._.includes('ts')) {
-  const dir = argv.output;
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-  const files = buildLibrary(<Array<AbiStruct | AbiEnum>> structs);
-  const index = [];
-  files.forEach(({ code, fileName, jsonFile, jsonFileName }) => {
-    fs.writeFileSync(path.join(dir, fileName), code);
-    fs.writeFileSync(path.join(dir, jsonFileName), jsonFile);
-    index.push(`export * from './${fileName}';`);
-  });
-  fs.writeFileSync(path.join(dir, 'index.ts'), index.join('\n').replace(/\.ts/g, ''));
-}

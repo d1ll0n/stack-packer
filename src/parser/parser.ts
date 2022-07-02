@@ -1,18 +1,16 @@
 import parser, {
-  ArrayTypeName,
-  ElementaryTypeName,
   EnumDefinition,
-  UserDefinedTypeName,
   StructDefinition,
   ContractDefinition,
   VariableDeclaration,
   TypeName as AntlrTypeName,
   NumberLiteral,
-  SourceUnit
+  SourceUnit,
+  FunctionDefinition
 } from 'solidity-parser-antlr';
-import { EnumType, StructType, StructField, TypeName, DefinedType } from './types';
-const path = require('path');
-const fs = require('fs');
+import { EnumType, StructType, StructField, TypeName, DefinedType, FunctionType } from './types';
+import path from 'path';
+import fs from 'fs';
 
 function parseTypeName(scopeName: string, typeName: AntlrTypeName): TypeName {
   if (typeName.type == 'ElementaryTypeName') return typeName;
@@ -26,16 +24,16 @@ function parseTypeName(scopeName: string, typeName: AntlrTypeName): TypeName {
     return {
       type,
       baseTypeName: parseTypeName(scopeName, baseTypeName),
-      length: {
+      length: length ? {
         number: +(length as NumberLiteral).number,
         type: 'NumberLiteral'
-      }
+      } : null
     }
   }
   if (typeName.type == 'Mapping') {
-    throw new Error(`Caught unencodable type Mapping in ${scopeName} -> ${name}`)
+    throw new Error(`Caught unencodable type Mapping in ${scopeName}`)
   }
-  throw new Error(`Did not recognize type ${typeName.type} in ${scopeName} -> ${name}`)
+  throw new Error(`Did not recognize type ${typeName.type} in ${scopeName}`)
 }
 
 /**
@@ -57,6 +55,15 @@ export function parseStruct(scopeName: string, subNode: StructDefinition): Struc
   return { name, type, namePath, fields };
 }
 
+export function parseFunction(scopeName: string, subNode: FunctionDefinition): FunctionType {
+  const {type, name, parameters} = subNode;
+  const namePath = `${scopeName}.${name}`;
+  const fields = parameters.map(member => parseMember(scopeName, member));
+  return { name, type, namePath, fields };
+}
+
+// export function parseFunction()
+
 export function parseEnum(scopeName: string, subNode: EnumDefinition): EnumType {
   const {type, name, members} = subNode;
   const namePath = `${scopeName}.${name}`;
@@ -64,11 +71,17 @@ export function parseEnum(scopeName: string, subNode: EnumDefinition): EnumType 
   return { name, type, namePath, fields };
 }
 
-export function parseSubNode(scopeName: string, subNode: StructDefinition | EnumDefinition): DefinedType {
+type SubNodeType<FunctionsAllowed extends true | false> = FunctionsAllowed extends true
+  ? StructDefinition | EnumDefinition | FunctionDefinition
+  :StructDefinition | EnumDefinition
+
+function parseSubNode(scopeName: string, subNode: SubNodeType<false>): DefinedType<false> {
   const {type, name} = subNode;
   if (type == 'StructDefinition') return parseStruct(scopeName, subNode as StructDefinition);
   if (type ==  'EnumDefinition') return parseEnum(scopeName, subNode as EnumDefinition);
 }
+
+export { parseSubNode }
 
 export function parseContract(contractNode: ContractDefinition): DefinedType[] {
   let structs = [];
@@ -76,7 +89,7 @@ export function parseContract(contractNode: ContractDefinition): DefinedType[] {
   for (let subNode of subNodes) {
     const node = subNode as StructDefinition | EnumDefinition;
     try {
-      const parsed = parseSubNode(name, node);
+      const parsed = parseSubNode(name, node, /* false */);
       if (parsed) structs.push(parsed);
     } catch(err) {
       console.log(`Failed to parse subNode ${node.name} in ${name}: \n\t${err.message}`)

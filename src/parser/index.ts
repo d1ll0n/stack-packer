@@ -1,7 +1,8 @@
 import Parser = require('./parser');
-import { DefinedType, EnumType, StructType, StructField, TypeName } from './types';
-import { AbiType, AbiStructField, AbiStruct, AbiEnum } from '../lib/types';
-import { bitsRequired, elementaryToTypeDef } from '../lib/helpers';
+import { DefinedType, EnumType, StructType, TypeName } from './types';
+import { AbiType, AbiStructField } from '../types';
+import { bitsRequired } from '../lib/bytes';
+// import { bitsRequired, elementaryToTypeDef } from '../lib/helpers';
 
 class ParserWrapper {
   structs: { [key: string]: AbiType } = {};
@@ -33,10 +34,13 @@ class ParserWrapper {
       const outFields: AbiStructField[] = [];
       let size = 0;
       for (let field of fields) {
-        const { name, typeName } = field;
+        let { name, typeName } = field;
+        let group: string[] | undefined;
+        ({ group, name } = getNameAndGroup(name))
+        name.replace(/_group\d/g, '');
         const abiType = this.convertFieldType(typeName);
         if (!abiType) return null;
-        outFields.push({ name, type: abiType });
+        outFields.push({ name, group, type: abiType });
         if (abiType.size == null) size = null;
         else if (size != null) size += abiType.size;
       }
@@ -79,13 +83,55 @@ class ParserWrapper {
 }
 
 export function parseCode(sourceCode: string): AbiType[] {
-  if (!(/pragma solidity/g.exec(sourceCode))) {
-    sourceCode = ['pragma solidity ^0.6.0;', '', sourceCode].join('\n');
-  }
-  if (!(/(library {|contract {)/g.exec(sourceCode))) {
-    sourceCode = ['library TmpLib {', sourceCode, '}'].join('\n');
-  }
   const input = Parser.parseFile(sourceCode);
   const handler = new ParserWrapper(input);
   return handler.allStructs;
 }
+
+export const elementaryToTypeDef = (typeName: string): AbiType => {
+  const isBool = /bool/g.exec(typeName);
+  if (isBool)
+    return {
+      meta: "elementary",
+      dynamic: false,
+      size: 8,
+      type: "bool",
+    };
+  const isUint = /uint(\d{0,3})/g.exec(typeName);
+  if (isUint) {
+    const size = isUint[1];
+    return {
+      meta: "elementary",
+      dynamic: !size,
+      size: size ? +size : null,
+      type: "uint",
+    };
+  }
+  const isBytes = /bytes(\d{0,2})/g.exec(typeName);
+  if (isBytes) {
+    const size = isBytes[1];
+    return {
+      meta: "elementary",
+      dynamic: !size,
+      size: size ? 8 * +size : null,
+      type: "bytes",
+    };
+  }
+  const isAddress = /address/g.exec(typeName);
+  if (isAddress) {
+    return {
+      meta: "elementary",
+      dynamic: false,
+      size: 160,
+      type: "address",
+    };
+  }
+};
+
+const groupNameRegex = /_group_([a-zA-Z]+)/g;
+const getGroups = (name: string) => [...name.matchAll(groupNameRegex)]?.map((arr) => arr?.[1]);
+
+const getNameAndGroup = (name: string): { group?: string[]; name: string } => ({
+  group: getGroups(name),
+  name: name.replace(groupNameRegex, '')
+})
