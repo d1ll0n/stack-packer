@@ -9,13 +9,12 @@ The advantage of this is that you can define packed structs without the overhead
 It is **highly recommended** that you use this library alongside a high number of optimization runs, with `viaIR` set to true and without disabling yul inlining.
 
 ## Install
-> npm install -g abi-gen
+`$ npm install -g abi-gen`
 
 ## Usage
 
 ### Command line
-
-> stack-packer <input_path> [output_path] [flags]
+`$ stack-packer <input_path> [output_path] [flags]`
 
 Give an `input_path` pointing to either a Solidity file or a directory with Solidity files.
 
@@ -70,7 +69,7 @@ contract UserContract {
 ### Generate a coder for it
 
 Run:
-> `stack-packer ./User.sol`
+`$ stack-packer ./User.sol`
 
 A file will be generated at `UserCoder.sol` with a `UserCoder` library including coder functions for each field in the `User` struct as well as full encode/decode functions.
 
@@ -119,7 +118,7 @@ contract ExchangeConfigContract {
 ```
 
 Run:
-> `stack-packer ./ExchangeConfig.sol`
+`$ stack-packer ./ExchangeConfig.sol`
 
 The `ExchangeConfigCoder.sol` file will include grouped functions for `Fees`, `Buy` and `Sell`. Now governance can update the fee bips without needing to decode the total fees, the buy and sell functions can read the appropriate fee bips and the previous total without decoding the parameters for the other side, etc.
 
