@@ -106,7 +106,7 @@ The syntax for grouping is to add `_group_GroupName` after the field name. You c
 
 Create a file `ExchangeConfig.sol` and paste this Solidity code:
 
-```solidity=
+```sol
 contract ExchangeConfigContract {
   struct ExchangeConfig {
     uint16 buyFeeBips_group_Fees_group_Buy;
@@ -122,7 +122,7 @@ Run:
 
 The `ExchangeConfigCoder.sol` file will include grouped functions for `Fees`, `Buy` and `Sell`. Now governance can update the fee bips without needing to decode the total fees, the buy and sell functions can read the appropriate fee bips and the previous total without decoding the parameters for the other side, etc.
 
-```solidity=
+```solidity
 /*//////////////////////////////////////////////////////////////
                   ExchangeConfig Fees Group
 //////////////////////////////////////////////////////////////*/
