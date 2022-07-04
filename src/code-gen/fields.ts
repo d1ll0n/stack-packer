@@ -29,6 +29,7 @@ export const toTypeName = (def: AbiType): string => {
 			case 'byte':
 				return `byte`;
 			case 'bytes':
+        if (def.dynamic) return `bytes`
 				return `bytes${def.size / 8}`;
 			case 'address':
 				return 'address';
