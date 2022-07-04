@@ -1,4 +1,4 @@
-import { toArray } from "../lib/text";
+import { suffixLastString, toArray } from "../lib/text";
 import { ArrayJoinInput } from "../types";
 import { ProcessedField } from "./fields";
 
@@ -33,15 +33,26 @@ export const buildFunctionBlock = (
   const withInputs = arrayifyFields(
     `function ${name}(`,
     input,
-    `) internal pure returns (`
+    `) internal pure`
   );
-  const withOutputs = arrayifyFields(
-    withInputs[withInputs.length - 1] as string,
-    output,
-    `) {`
-  );
+  let outputs: ArrayJoinInput<string>[] = []
+  if (output.length) {
+    suffixLastString(withInputs, ' returns (');
+    outputs = arrayifyFields(
+      withInputs[withInputs.length - 1] as string,
+      output,
+      `) {`
+    );
+  } else {
+    suffixLastString(withInputs, ' {')
+    outputs = arrayifyFields(
+      withInputs[withInputs.length - 1] as string,
+      '',
+      ``
+    );
+  }
   const allButLastInput = withInputs.slice(0, withInputs.length - 1);
-  return [...allButLastInput, ...withOutputs, lines, "}"];
+  return [...allButLastInput, ...outputs, lines, "}"];
 };
 
 export function buildNestedAssemblyOr(
