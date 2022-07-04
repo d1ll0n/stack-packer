@@ -109,8 +109,8 @@ const overflowRevert = (constantReferences: string[]) => ([
 const overflowConstants = [
   ['Panic_error_signature', '0x4e487b7100000000000000000000000000000000000000000000000000000000'],
   ['Panic_error_offset', '0x04'],
-  ['Panic_error_length', '0x24'],
   ['Panic_arithmetic', '0x11'],
+  ['Panic_error_length', '0x24'],
 ]
 
 export function getOverflowCheck(originalFields: ProcessedField<string | string[]>[], context: FileContext): ArrayJoinInput<string> {
