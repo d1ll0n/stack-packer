@@ -5,10 +5,10 @@ export const getDeclareConstant = (name: string, value: string) =>
   `uint256 constant ${name} = ${value};`;
 
 export type GeneratorOptions = {
-  oversizedInputs: boolean;
-  inline: boolean;
-  unsafe: boolean;
-  noComments: boolean;
+  oversizedInputs?: boolean;
+  inline?: boolean;
+  unsafe?: boolean;
+  noComments?: boolean;
 }
 
 export class FileContext {
