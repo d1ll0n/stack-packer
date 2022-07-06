@@ -83,6 +83,11 @@ Removes:
 - section separation comments
 - struct definition comment at the top of the file
 
+**--constantsFile, -c**
+Generates a separate file for constants.
+
+If this option is not provided, it will default to true if the output location is a directory.
+
 ### Input file notes
 
 **Files should only define one struct**
