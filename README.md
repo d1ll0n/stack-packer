@@ -10,6 +10,7 @@ Modified from [abi-codegen](https://github.com/d1ll0n/abi-codegen), an in-memory
 - Full struct encoding and decoding
 - Getters and setters for individual parameters and arbitrary groups of parameters - avoids encoding/decoding unused fields
 - Cache structs on the stack to avoid memory expansion or excessive storage access
+- Use one bit for booleans
 # Table of contents
 
 - [Install](#install)
