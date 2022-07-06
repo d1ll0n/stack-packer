@@ -1,21 +1,75 @@
+import { Accessors, CoderType, GroupType } from "./parser/types";
 
-export type AbiStructField<T extends string | string[] = string[]> = {
+export type AbiStructField = {
   name: string;
   type: AbiType;
-  group?: T;
+  coderType: CoderType;
+  accessors?: Accessors
 }
 
-export type AbiStruct<T extends string | string[] = string[]> = {
+export type AbiStruct = {
   meta: 'struct';
   name: string;
-  fields: AbiStructField<T>[];
+  fields: AbiStructField[];
+  dynamic?: boolean;
+  size?: number;
+  coderType: CoderType;
+  accessors?: Accessors
+  groups: GroupType[]
+}
+
+export type AbiEventField = AbiStructField & { isIndexed: boolean };
+
+export type AbiEvent = {
+  meta: 'event';
+  name: string;
+  fields: AbiEventField[]
+  dynamic?: boolean;
+  size?: boolean;
+}
+
+export type StructGroup = {
+  name: string;
+  coderType: CoderType;
+  accessors?: Accessors;
+  members: AbiStructField[]
+}
+
+// type AbiParameterType = AbiStruct<T> | AbiArray<T> | AbiElementaryType | AbiEnum
+
+export type AbiFunction = {
+  meta: 'function';
+  name: string;
+  stateMutability: 'pure' | 'constant' | 'payable' | 'view' | null;
+  visibility: 'default' | 'external' | 'internal' | 'public' | 'private';
+  input: {
+    fields: AbiStructField[];
+    dynamic?: boolean;
+    size?: number;
+  }
+  output: {
+    fields: AbiStructField[];
+    dynamic?: boolean;
+    size?: number;
+  }
+}
+
+export type AbiErrorField = {
+  name: string;
+  type: AbiType<false>;
+}
+
+export type AbiError = {
+  meta: 'error';
+  name: string;
+  fields: AbiErrorField[];
   dynamic?: boolean;
   size?: number;
 }
 
-export type AbiArray<T extends string | string[] = string[]> = {
+export type AbiArray = {
   meta: 'array';
-  baseType: AbiType<T>;
+  baseType: AbiType;
   length?: number;
   dynamic?: boolean;
   size?: number;
@@ -38,7 +92,12 @@ export type AbiEnum = {
   size?: number;
 }
 
-export type AbiType<T extends string | string[] = string[]> = AbiStruct<T> | AbiArray<T> | AbiElementaryType | AbiEnum;
+export type AbiType<
+  AllowErrors extends true|false = false,
+  AllowEvents extends true|false = false
+> = AbiStruct | AbiArray | AbiElementaryType | AbiEnum
+| (AllowErrors extends true ? AbiError : never)
+| (AllowEvents extends true ? AbiEvent : never);
 
 export type ArrayJoinInput<T = string> = Array<ArrayJoinInput<T>> | Array<T> | T;
 

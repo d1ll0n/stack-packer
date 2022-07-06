@@ -1,16 +1,15 @@
 // const strip = require('strip-comments');
 import { AbiStruct, AbiEnum } from '../types';
 import { arrJoiner } from '../lib/text';
-import { toTypeName, abiStructToSol, processFields, separateGroups } from './fields';
+import { toTypeName, abiStructToSol, processFields, resolveGroupMembers } from './fields';
 import {
 	getDecodeFunction,
 	getEncodeFunction,
-	getReadFieldFunction,
-	getWriteFieldFunction,
 	getEncodeGroupFunction,
 	getDecodeGroupFunction,
+  generateFieldAccessors,
 } from './functions';
-import { toCommentSeparator, generateNotice } from './comments';
+import { generateNotice } from './comments';
 import { GeneratorOptions, FileContext } from './context';
 import { prettierFormat } from './prettier';
 
@@ -31,33 +30,24 @@ export function generateCoderLibrary(struct: AbiStruct, opts: GeneratorOptions) 
 	const fields = processFields(struct, context);
 
 	for (const field of fields) {
-    context.addSection(
-      `${field.structName}.${field.originalName} coders`,
-      [
-        '',
-        getReadFieldFunction(field),
-        '',
-        getWriteFieldFunction(field, context)
-      ]
-    )
+    generateFieldAccessors(field, context)
 	}
 
-	const groupedFields = separateGroups(fields);
-
-	for (const group of groupedFields) {
+  for (const group of struct.groups) {
+    const groupFields = resolveGroupMembers(struct, group, fields);
     context.addSection(
-      `${group[0].structName} ${group[0].group} Group`,
+      `${struct.name} ${group.name} Group`,
       [
         '',
-        getEncodeGroupFunction(group, context),
+        getEncodeGroupFunction(group, groupFields, context),
         '',
-        getDecodeGroupFunction(group)
+        getDecodeGroupFunction(group, groupFields)
       ]
     )
-	}
+  }
 
-	const decodeFunctionBlock = getDecodeFunction(fields);
-	const encodeFunctionBlock = getEncodeFunction(fields, context);
+	const decodeFunctionBlock = getDecodeFunction(struct, fields);
+	const encodeFunctionBlock = getEncodeFunction(struct, fields, context);
 
 	const typeDef = [
 		`// struct ${struct.name} {`,

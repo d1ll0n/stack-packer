@@ -1,11 +1,33 @@
 import Parser = require('./parser');
-import { DefinedType, EnumType, StructType, TypeName } from './types';
-import { AbiType, AbiStructField } from '../types';
+import { DefinedType, EnumType, ErrorType, EventParameter, EventType, FunctionType, GroupType, StructField, StructType, TypeName } from './types';
+import { AbiType, AbiStructField, AbiArray, AbiElementaryType, AbiErrorField, AbiError, AbiFunction, AbiEvent, AbiEventField, AbiEnum, AbiStruct, StructGroup } from '../types';
 import { bitsRequired } from '../lib/bytes';
 // import { bitsRequired, elementaryToTypeDef } from '../lib/helpers';
 
-class ParserWrapper {
-  structs: { [key: string]: AbiType } = {};
+export function convertFieldType(typeName: TypeName, structs: Record<string, AbiType>): AbiType {
+  const { type, baseTypeName, name, namePath, length } = typeName;
+  switch(type) {
+    case 'ArrayTypeName':
+      const baseType = this.convertFieldType(baseTypeName);
+      const size = (baseType.size && length) ? length.number * baseType.size : null
+      return {
+        meta: 'array',
+        baseType,
+        length: length && length.number,
+        dynamic: size == null,
+        size
+      } as AbiArray
+    case 'ElementaryTypeName': return elementaryToTypeDef(name) as AbiElementaryType;
+    case 'UserDefinedTypeName': return structs[namePath] || null;
+  }
+}
+
+export class ParserWrapper {
+  enums: Record<string, AbiEnum> = {}
+  structs: Record<string, AbiStruct> = {};
+  functions: Record<string, AbiFunction> = {}
+  errors: Record<string, AbiError> = {}
+  events: Record<string, AbiEvent> = {}
 
   constructor(parsed: DefinedType[]) {
     let i = 0;
@@ -13,11 +35,65 @@ class ParserWrapper {
     while (n < parsed.length && i < 50) for (let p of parsed) if (this.handleType(p)) (i++ && n++);
   }
 
-  get allStructs(): AbiType[] {
-    return Object.keys(this.structs).reduce((arr, k) => [...arr, this.structs[k]], []);
+  get allStructs(): AbiType<false, false>[] {
+    return [
+      ...Object.values(this.structs),
+      ...Object.values(this.enums)
+    ]
   }
 
-  handleType(input: DefinedType): AbiType {
+  get allErrors(): AbiError[] {
+    return Object.values(this.errors)
+  }
+
+  get allEvents(): AbiEvent[] {
+    return Object.values(this.events)
+  }
+
+  get allFunctions(): AbiFunction[] {
+    return Object.values(this.functions)
+  }
+  
+  handleFields(fields: StructField[]) {
+    const outFields: AbiStructField[] = [];
+    let size = 0;
+    for (let field of fields) {
+      let { name, typeName, coderType, accessors } = field;
+      const abiType = this.convertFieldType(typeName);
+      if (!abiType) return null;
+      const outField: AbiStructField = { name, type: abiType, coderType, accessors }
+      if ((field as any).isIndexed) {
+        (outField as any).isIndexed = (field as any).isIndexed
+      }
+      outFields.push(outField);
+      if (abiType.size == null) size = null;
+      else if (size != null) size += abiType.size;
+    }
+    return {
+      fields: outFields,
+      dynamic: size == null,
+      size
+    }
+  }
+
+  buildGroup(struct: AbiStruct, group: GroupType): StructGroup {
+    const members: AbiStructField[] = []
+    for (const member of group.members) {
+      const field = struct.fields.find((field) => field.name === member.name);
+      if (!field) throw Error(`Member ${member.name} of group ${group.name} not found in ${struct.name}`);
+      // Shallow copy because we won't need to modify nested values
+      const fieldCopy = { ...field }
+      if (member.coderType) {
+        fieldCopy.coderType = member.coderType;
+      } else if (group.coderType) {
+        fieldCopy.coderType = group.coderType
+      }
+    }
+    const { name, coderType, accessors } = group;
+    return { name, coderType, accessors, members }
+  }
+
+  handleType(input: DefinedType): AbiType<true, true> | AbiFunction {
     if (input.type == 'EnumDefinition') {
       const { type, name, fields, namePath } = <EnumType> input;
       const out: AbiType = {
@@ -27,74 +103,127 @@ class ParserWrapper {
         dynamic: false,
         size: bitsRequired(fields.length)
       };
-      return this.putStruct(namePath, out);
+      return this.putEnum(namePath, out);
     }
     if (input.type == 'StructDefinition') {
-      const { name, fields, namePath } = <StructType> input;
-      const outFields: AbiStructField[] = [];
-      let size = 0;
-      for (let field of fields) {
-        let { name, typeName } = field;
-        let group: string[] | undefined;
-        ({ group, name } = getNameAndGroup(name))
-        name.replace(/_group\d/g, '');
-        const abiType = this.convertFieldType(typeName);
-        if (!abiType) return null;
-        outFields.push({ name, group, type: abiType });
-        if (abiType.size == null) size = null;
-        else if (size != null) size += abiType.size;
-      }
-      // for (let f of outFields)
-      // const size = outFields.reduce((sum, f)=> (sum != null && f.type.size != null) ? sum + f.type.size : null, 0);
+      const { name, fields: _fields, namePath, coderType, accessors, groups } = <StructType> input;
+      const { fields, size, dynamic } = this.handleFields(_fields);
+
       const struct: AbiType = {
         meta: 'struct',
         size,
-        dynamic: size == null,
+        dynamic,
         name,
-        fields: outFields
+        fields,
+        coderType,
+        accessors,
+        groups
       }
+      // struct.groups = groups.map(group => this.buildGroup(struct, group));
+
       return this.putStruct(namePath, struct);
+    }
+    if (input.type == 'CustomErrorDefinition') {
+      const { name, fields: _fields, namePath } = <ErrorType> input;
+      const { fields, size, dynamic } = this.handleFields(_fields);
+
+      const error: AbiError = {
+        meta: 'error',
+        size,
+        dynamic,
+        name,
+        fields
+      }
+      return this.putError(namePath, error as AbiError);
+    }
+    if (input.type == 'FunctionDefinition') {
+      const { stateMutability, visibility, name, namePath } = <FunctionType> input;
+      const inputs = this.handleFields(input.input)
+      const outputs = this.handleFields(input.output)
+      const fn: AbiFunction = {
+        meta: "function",
+        name,
+        stateMutability,
+        visibility,
+        input: inputs,
+        output: outputs
+      }
+      return this.putFunction(namePath, fn);
+    }
+    if (input.type === 'EventDefinition') {
+      const { name, namePath } = <EventType> input
+      const { fields, dynamic, size } = this.handleFields(input.fields) as any
+      const event: AbiEvent = {
+        meta: 'event',
+        name,
+        fields,
+        dynamic,
+        size
+      }
+      return this.putEvent(namePath, event);
     }
     throw new Error(`Did not recognize type of ${input}`)
   }
 
   convertFieldType(typeName: TypeName): AbiType {
-    const { type, baseTypeName, name, namePath, length } = typeName;
-    switch(type) {
-      case 'ArrayTypeName':
-        const baseType = this.convertFieldType(baseTypeName);
-        const size = (baseType.size && length) ? length.number * baseType.size : null
-        return {
-          meta: 'array',
-          baseType,
-          length: length && length.number,
-          dynamic: size == null,
-          size
-        }
-      case 'ElementaryTypeName': return elementaryToTypeDef(name);
-      case 'UserDefinedTypeName': return this.structs[namePath] || null;
-    }
+    return convertFieldType(typeName, this.structs as any)
   }
 
-  putStruct(namePath: string, struct: AbiType) {
+  putStruct(namePath: string, struct: AbiStruct) {
     this.structs[namePath] = struct;
     return struct;
   }
+
+  putEnum(namePath: string, _enum: AbiEnum) {
+    this.enums[namePath] = _enum;
+    return _enum;
+  }
+
+  putError(namePath: string, error: AbiError) {
+    this.errors[namePath] = error;
+    return error;
+  }
+
+  putEvent(namePath: string, event: AbiEvent) {
+    this.events[namePath] = event;
+    return event;
+  }
+
+  putFunction(namePath: string, fn: AbiFunction) {
+    this.functions[namePath] = fn;
+    return fn;
+  }
 }
 
-export function parseCode(sourceCode: string): AbiType[] {
+export function parseCode<AllowErrors extends true|false = false>(sourceCode: string): AbiType<AllowErrors>[] {
   const input = Parser.parseFile(sourceCode);
   const handler = new ParserWrapper(input);
   return handler.allStructs;
 }
 
-export const elementaryToTypeDef = (typeName: string): AbiType => {
+export function parseCode2(sourceCode: string): {
+  functions: AbiFunction[];
+  errors: AbiError[];
+  structs: AbiType<true>[],
+  events: AbiEvent[]
+} {
+  const input = Parser.parseFile(sourceCode);
+  const handler = new ParserWrapper(input);
+  return {
+    functions: handler.allFunctions,
+    errors: handler.allErrors,
+    structs: handler.allStructs,
+    events: handler.allEvents
+  };
+}
+
+export const elementaryToTypeDef = (typeName: string): AbiElementaryType => {
   const isBool = /bool/g.exec(typeName);
   if (isBool)
     return {
       meta: "elementary",
       dynamic: false,
-      size: 8,
+      size: 1,
       type: "bool",
     };
   const isUint = /uint(\d{0,3})/g.exec(typeName);
@@ -127,11 +256,3 @@ export const elementaryToTypeDef = (typeName: string): AbiType => {
     };
   }
 };
-
-const groupNameRegex = /_group_([a-zA-Z]+)/g;
-const getGroups = (name: string) => [...name.matchAll(groupNameRegex)]?.map((arr) => arr?.[1]);
-
-const getNameAndGroup = (name: string): { group?: string[]; name: string } => ({
-  group: getGroups(name),
-  name: name.replace(groupNameRegex, '')
-})

@@ -1,14 +1,19 @@
 {
   "compilerOptions": {
+    "outDir": "dist",
     "target": "ES2020",
     "module": "commonjs",
     "moduleResolution": "node",
-    "outDir": "dist",
+    "allowJs": true,
     "noImplicitAny": false,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    "lib": ["es2016"],
     "resolveJsonModule": true,
-    "declaration": true
+    "declaration": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "typeRoots": ["node_modules/@types"],
+    "types": ["node"]
     // "sourceMap": true
   },
   "include": ["src/**/*.ts"]

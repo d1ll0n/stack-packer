@@ -1,18 +1,24 @@
-import parser, {
+import {
   EnumDefinition,
   StructDefinition,
+  GroupDefinition,
   ContractDefinition,
   VariableDeclaration,
   TypeName as AntlrTypeName,
   NumberLiteral,
   SourceUnit,
-  FunctionDefinition
-} from 'solidity-parser-antlr';
-import { EnumType, StructType, StructField, TypeName, DefinedType, FunctionType } from './types';
+  FunctionDefinition,
+  CustomErrorDefinition,
+  EventDefinition,
+  ASTNode,
+  parse
+} from '@d1ll0n/solidity-parser';
+import { EnumType, StructType, StructField, TypeName, DefinedType, FunctionType, ErrorType, EventType, CoderType, GroupType } from './types';
 import path from 'path';
 import fs from 'fs';
+import { string } from 'yargs';
 
-function parseTypeName(scopeName: string, typeName: AntlrTypeName): TypeName {
+export function parseTypeName(scopeName: string, typeName: AntlrTypeName): TypeName {
   if (typeName.type == 'ElementaryTypeName') return typeName;
   if (typeName.type == 'UserDefinedTypeName') {
     let namePath = (typeName.namePath.includes('.'))
@@ -43,23 +49,61 @@ function parseTypeName(scopeName: string, typeName: AntlrTypeName): TypeName {
  *    @member typeName Object with data about the type
  *    @member name Name of the field in the struct
  */
-export function parseMember(scopeName: string, member: VariableDeclaration): StructField {
-  const { typeName, name } = member;
-  return { typeName: parseTypeName(scopeName, typeName), name };
+export function parseMember(scopeName: string, member: VariableDeclaration, defaultCoderType: CoderType): StructField {
+  const { typeName, name, coderType } = member;
+  const accessors = member.accessors && {
+    getterCoderType: member.accessors.getterCoderType,
+    setterCoderType: member.accessors.setterCoderType,
+  }
+  return { typeName: parseTypeName(scopeName, typeName), name, coderType: coderType || defaultCoderType, accessors };
 }
 
 export function parseStruct(scopeName: string, subNode: StructDefinition): StructType {
-  const {type, name, members} = subNode;
+  const {type, name, members, coderType} = subNode;
   const namePath = `${scopeName}.${name}`;
-  const fields = members.map(member => parseMember(scopeName, member));
-  return { name, type, namePath, fields };
+  const fields = members.map(member => parseMember(scopeName, member, coderType));
+  const accessors = subNode.accessors && {
+    getterCoderType: subNode.accessors.getterCoderType,
+    setterCoderType: subNode.accessors.setterCoderType,
+  };
+  const groups = (subNode.groups ?? []).map(parseGroup)
+  return { name, type, namePath, fields, coderType: coderType || 'checked', accessors, groups };
+}
+
+export function parseGroup(subnode: GroupDefinition): GroupType {
+  const { name, accessors, coderType } = subnode;
+  const members = subnode.members.map((member) => ({ name: member.name, coderType: member.coderType }));
+  return {
+    name,
+    accessors,
+    coderType,
+    members
+  }
+}
+
+export function parseError(scopeName: string, subNode: CustomErrorDefinition): ErrorType {
+  const { type, name, parameters } = subNode;
+  const namePath = [scopeName, '.', name].join('');
+  const fields = parameters.map(member => parseMember(scopeName, member, 'unchecked'));
+  return { name, type, namePath, fields }
+}
+
+export function parseEvent(scopeName: string, subNode: EventDefinition): EventType {
+  const { type, name, parameters } = subNode;
+  const namePath = [scopeName, '.', name].join('');
+  const fields = parameters.map(member => ({
+    ...parseMember(scopeName, member, 'unchecked'),
+    isIndexed: member.isIndexed
+  }));
+  return { name, type, namePath, fields }
 }
 
 export function parseFunction(scopeName: string, subNode: FunctionDefinition): FunctionType {
-  const {type, name, parameters} = subNode;
+  const {type, name, parameters, returnParameters, stateMutability, visibility} = subNode;
   const namePath = `${scopeName}.${name}`;
-  const fields = parameters.map(member => parseMember(scopeName, member));
-  return { name, type, namePath, fields };
+  const input = parameters.map(member => parseMember(scopeName, member, 'unchecked'));
+  const output = returnParameters.map(member => parseMember(scopeName, member, 'unchecked'));
+  return { name, type, namePath, input, output, stateMutability, visibility };
 }
 
 // export function parseFunction()
@@ -71,14 +115,32 @@ export function parseEnum(scopeName: string, subNode: EnumDefinition): EnumType 
   return { name, type, namePath, fields };
 }
 
-type SubNodeType<FunctionsAllowed extends true | false> = FunctionsAllowed extends true
-  ? StructDefinition | EnumDefinition | FunctionDefinition
-  :StructDefinition | EnumDefinition
+type SubNodeType = StructDefinition | EnumDefinition | FunctionDefinition | CustomErrorDefinition | EventDefinition
+const SubNodeTypeStrings = [
+  'StructDefinition',
+  'EnumDefinition',
+  'FunctionDefinition',
+  'CustomErrorDefinition',
+  'EventDefinition'
+]
+type SubNodeTypeString = typeof SubNodeTypeStrings[number]
 
-function parseSubNode(scopeName: string, subNode: SubNodeType<false>): DefinedType<false> {
-  const {type, name} = subNode;
-  if (type == 'StructDefinition') return parseStruct(scopeName, subNode as StructDefinition);
-  if (type ==  'EnumDefinition') return parseEnum(scopeName, subNode as EnumDefinition);
+type SubNodeTypeMap<U> = { [K in SubNodeTypeString]: U extends { type: K } ? U : never }
+type OutputMap = SubNodeTypeMap<DefinedType>
+type InputMap = SubNodeTypeMap<SubNodeType>
+type ParserMap = {
+  [K in SubNodeTypeString]: (scopeName: string, input: InputMap[K]) => OutputMap[K]
+}
+const parsers: ParserMap = {
+  'StructDefinition': parseStruct,
+  'EnumDefinition': parseEnum,
+  'FunctionDefinition': parseFunction,
+  'CustomErrorDefinition': parseError,
+  'EventDefinition': parseEvent
+}
+
+function parseSubNode(scopeName: string, subNode: SubNodeType) {
+  return parsers[subNode.type](scopeName, subNode)
 }
 
 export { parseSubNode }
@@ -98,12 +160,17 @@ export function parseContract(contractNode: ContractDefinition): DefinedType[] {
   return structs;
 }
 
+const isSupportedNode = (x: ASTNode): x is SubNodeType => {
+  return SubNodeTypeStrings.includes(x.type);
+}
+
 export function parseFile(file: string): DefinedType[] {
   let structs = [];
-  const { children } = <SourceUnit> parser.parse(file, { tolerant: true });
-  for (let child of children) if (child.type == 'ContractDefinition') {
-    let _structs = parseContract(child)
-    if (_structs.length) structs = structs.concat(_structs)
+  const { children } = <SourceUnit> parse(file, { tolerant: true });
+  for (const child of children) {
+    if (isSupportedNode(child)) {
+      structs.push(parseSubNode('', child))
+    }
   }
   return structs;
 }
