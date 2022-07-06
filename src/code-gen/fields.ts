@@ -1,12 +1,13 @@
 import _ from "lodash";
 import { numberToPascalCaseWords } from '../lib/text'
 import { AbiType, AbiStruct, ArrayJoinInput, AbiStructField, AbiEnum } from '../types';
-import { getInclusionMask, getOmissionMask, toHex } from '../lib/bytes';
+import { getMaxUint, getOmissionMask, toHex } from '../lib/bytes';
 import { FileContext } from './context';
 import { ReservedKeywords } from './ReservedKeywords';
+import { CoderType, GroupType } from "../parser/types";
 
-export type ProcessedField<T extends string | string[] = string[]> =
-  AbiStructField<T> & {
+export type ProcessedField =
+  AbiStructField & {
     offset: number;
     readFromWord: string;
     positioned: string;
@@ -17,13 +18,22 @@ export type ProcessedField<T extends string | string[] = string[]> =
     originalName: string;
     setterName: string;
     getterName: string;
+    generateGetter: boolean;
+    generateSetter: boolean;
+    getterCoderType?: CoderType;
+    setterCoderType?: CoderType;
+    maxValueReference: string;
   };
 
-export const toTypeName = (def: AbiType): string => {
+export const toTypeName = (def: AbiType, roundToNearestByte?: boolean): string => {
 	if (def.meta == 'elementary') {
 		switch (def.type) {
 			case 'uint':
-				return `uint${def.size}`;
+        let size = def.size
+        if (roundToNearestByte && size % 8) {
+          size += (8 - (size % 8))
+        }
+				return `uint${size}`;
 			case 'bool':
 				return `bool`;
 			case 'byte':
@@ -58,21 +68,56 @@ export const abiStructToSol = (struct: AbiStruct | AbiEnum): ArrayJoinInput<stri
 	return arr;
 };
 
-export const separateGroups = (fields: ProcessedField[]): ProcessedField<string>[][] => {
-	const allGroups = _(fields)
-		.pickBy('group')
-		.flatMap('group')
-		.union()
-		.value()
-		.map((group) =>
-			_(fields)
-				.pickBy({ group: [group] })
-				.toArray()
-				.map((obj) => _(obj).omit('group').assign({ group }).value())
-				.value(),
-		);
-	return allGroups;
-};
+export const resolveGroupMembers = (
+  struct: AbiStruct,
+  group: GroupType,
+  fields: ProcessedField[],
+): ProcessedField[] => {
+  const fieldCopies: ProcessedField[] = []
+  for (const member of group.members) {
+    const field = fields.find((field) => field.name === member.name);
+    if (!field) throw Error(`Member ${member.name} of group ${group.name} not found in ${struct.name}`);
+
+    // Shallow copy because we won't need to modify nested values
+    const fieldCopy = { ...field };
+
+    // If group member defines coder type, it will override the group's coder type
+    // and the coder type of the original field in the struct.
+    // If group defines coder type, it will override the coder type of the original
+    // field in the struct.
+    if (member.coderType) applyCoderType(fieldCopy, member.coderType);
+    else if (group.coderType) applyCoderType(fieldCopy, group.coderType);
+
+    fieldCopies.push(fieldCopy);
+  }
+  return fieldCopies;
+}
+
+export const applyGroupAccessCoder = (
+  group: GroupType,
+  fields: ProcessedField[],
+  groupCoderLocation: 'get' | 'set'
+) => {
+  const groupCoderType = groupCoderLocation === 'get'
+    ? group.accessors?.getterCoderType
+    : group.accessors?.setterCoderType;
+
+  for (let i = 0; i < fields.length; i++) {
+    const field = fields[i]
+    const member = group.members[i]
+    // If group member defines coder type, it will override the group's coder type
+    // and the coder type of the original field in the struct.
+    // If group defines coder type, it will override the coder type of the original
+    // field in the struct.
+    if (member.coderType) applyCoderType(field, member.coderType);
+    else if (groupCoderType) applyCoderType(field, groupCoderType);
+  }
+}
+
+export const applyCoderType = (field: ProcessedField, coderType: CoderType) => {
+  field.coderType = coderType;
+  field.parameterDefinition = getParameterDefinition(field);
+}
 
 export const getFieldSetterName = (field: ProcessedField) =>
   `set${field.originalName.toPascalCase()}`
@@ -80,9 +125,32 @@ export const getFieldSetterName = (field: ProcessedField) =>
 export const getFieldGetterName = (field: ProcessedField) =>
   `get${field.originalName.toPascalCase()}`;
 
-export const getParameterDefinition = (field: AbiStructField, oversized: boolean) => {
-  const typeName = toTypeName(field.type);
-  return `${(oversized && typeName.includes('uint')) ? 'uint256' : toTypeName(field.type)} ${field.name}`
+const uintAllowed = (typeName: AbiType) => (
+  typeName.meta === 'enum' || (
+    typeName.meta === 'elementary' && typeName.type === 'uint'
+  )
+)
+
+export const shouldCheckForOverflow = (field: AbiStructField): boolean => {
+  if (!uintAllowed(field.type) || field.coderType === 'unchecked') return false;
+  // Check for overflow if type size is not divisible by 8
+  return field.coderType === 'checked' || field.type.size % 8 > 0;
+}
+
+export const getParameterDefinition = (field: AbiStructField) => {
+  // If field is not a uint or enum, or `exact` is true, use real type
+  // otherwise, use uint256
+  const typeUsed = (
+    (field.coderType === 'exact') || !uintAllowed(field.type)
+  ) ? toTypeName(field.type, true) : 'uint256';
+  
+  return `${typeUsed} ${field.name}`
+}
+
+const getMaxUintForField = (field: AbiStructField) => {
+  const name = `MaxUint${field.type.size}`;
+  const value = getMaxUint(field.type.size);
+  return { name, value }
 }
 
 export function processFields(
@@ -92,12 +160,14 @@ export function processFields(
   const withExtras: ProcessedField[] = [];
   let offset = 0;
   for (const field of struct.fields) {
+    const maxValue = getMaxUintForField(field);
+    const maxValueReference = context.addConstant(maxValue.name, maxValue.value)
     const originalName = field.name;
     const isReserved = ReservedKeywords.includes(originalName);
     if (isReserved) {
       field.name = `_${field.name}`;
     }
-    const readFromWord = getReadField(struct, field, offset, context);
+    const readFromWord = getReadField(struct, field, offset, context, maxValueReference);
     const { update, position: positioned } = getSetField(
       struct,
       field,
@@ -111,12 +181,17 @@ export function processFields(
       readFromWord,
       positioned,
       update,
-      parameterDefinition: getParameterDefinition(field, context.opts.oversizedInputs),
+      parameterDefinition: getParameterDefinition(field),
       structName: struct.name,
       assignment: `${field.name} := ${readFromWord}`,
       originalName,
       getterName: `get${originalName.toPascalCase()}`,
       setterName: `set${originalName.toPascalCase()}`,
+      generateGetter: Boolean(!field.accessors || field.accessors.getterCoderType),
+      generateSetter: Boolean(!field.accessors || field.accessors.setterCoderType),
+      getterCoderType: field.accessors?.getterCoderType,
+      setterCoderType: field.accessors?.setterCoderType,
+      maxValueReference
     });
     offset += field.type.size;
   }
@@ -157,7 +232,8 @@ export const getReadField = (
   struct: AbiStruct,
   field: AbiStructField,
   offset: number,
-  context: FileContext
+  context: FileContext,
+  maxValueReference: string
 ) => {
   if (field.type.meta !== "elementary" && field.type.meta !== 'enum') throw Error("Unsupported field!");
   const constantsPrefix = `${struct.name}_${field.name}`;
@@ -171,9 +247,9 @@ export const getReadField = (
   }
   let masked = rightAligned;
   if (offset > 0) {
-    const maskName = `MaskOnlyLast${numberToPascalCaseWords(size / 8)}Bytes`;
-    const maskReference = context.addConstant(maskName, getInclusionMask(size));
-    masked = `and(${maskReference}, ${rightAligned})`;
+    // const maskName = `MaskOnlyLast${numberToPascalCaseWords(size / 8)}Bytes`;
+    // const maskReference = context.addConstant(maskName, getInclusionMask(size));
+    masked = `and(${maxValueReference}, ${rightAligned})`;
   }
   return masked;
 };

@@ -55,6 +55,18 @@ export const buildFunctionBlock = (
   return [...allButLastInput, ...outputs, lines, "}"];
 };
 
+export function buildImportStatement(file: string, imports: string[]) {
+  if (imports.length == 0) return [`import "./${file}";`];
+  return [
+    'import {',
+    [
+      ...imports.slice(0, imports.length - 1).map(_import => `${_import},`),
+      imports[imports.length-1],
+    ],
+    `} from "./${file}";`
+  ]
+}
+
 export function buildNestedAssemblyOr(
   fields: { positioned: ProcessedField["positioned"] }[]
 ): ArrayJoinInput<string> {
