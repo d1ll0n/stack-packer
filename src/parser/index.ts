@@ -223,7 +223,7 @@ export const elementaryToTypeDef = (typeName: string): AbiElementaryType => {
     return {
       meta: "elementary",
       dynamic: false,
-      size: 8,
+      size: 1,
       type: "bool",
     };
   const isUint = /uint(\d{0,3})/g.exec(typeName);
