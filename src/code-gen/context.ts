@@ -1,5 +1,5 @@
 import { ArrayJoinInput } from "../types";
-import { toCommentSeparator } from "./comments";
+import { generateNotice, toCommentSeparator } from "./comments";
 
 export const getDeclareConstant = (name: string, value: string) =>
   `uint256 constant ${name} = ${value};`;
@@ -9,7 +9,20 @@ export type GeneratorOptions = {
   inline?: boolean;
   unsafe?: boolean;
   noComments?: boolean;
+  constantsFile?: boolean;
 }
+
+const DefaultFileHeader = [
+  '// SPDX-License-Identifier: MIT',
+  `pragma solidity >=0.8.0;`,
+];
+
+export const generateFileHeader = (withNotice?: boolean, unsafeWarning?: boolean, imports?: string[]) => [
+  ...DefaultFileHeader,
+  '',
+  ...[imports ? [...imports, ''] : []],
+  ...(withNotice ? [...generateNotice(unsafeWarning), ''] : []),
+]
 
 export class FileContext {
   constants: string[] = [];
@@ -19,6 +32,13 @@ export class FileContext {
 
   get checkOverflows() {
     return this.opts.oversizedInputs && !this.opts.unsafe;
+  }
+
+  clearCode() {
+    this.code = [];
+    if (!this.opts.constantsFile) {
+      this.constants = [];
+    }
   }
 
   addSection(title: string, code: ArrayJoinInput<string>[]) {

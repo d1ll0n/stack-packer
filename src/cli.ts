@@ -5,6 +5,8 @@ import { parseCode } from './parser/index';
 import { UnpackerGen } from './code-gen/word-packer';
 import { AbiStruct, AbiEnum } from './types';
 import yargs from 'yargs'
+import { FileContext, generateFileHeader, GeneratorOptions } from './code-gen/context';
+import { arrJoiner } from './lib/text';
 
 type FileWithStructs = { fileName: string; structs: Array<AbiStruct | AbiEnum> }
 
@@ -80,6 +82,12 @@ yargs
         describe: 'Remove all comments, including the generator notice, section separators and code summaries',
         default: false,
         type: 'boolean'
+      },
+      constantsFile: {
+        alias: 'c',
+        describe: 'Create a separate file for constants.',
+        default: undefined,
+        type: 'boolean'
       }
     },
     ({inline, exact, unsafe, noComments,  ...argv}) => {
@@ -90,7 +98,11 @@ yargs
         console.log(`Generating library with unsafe casting.\nHope you know what you're doing...`)
       }
       const inputFiles = getFiles(argv);
-
+      let constantsFile = argv.constantsFile
+      if (constantsFile === undefined) {
+        constantsFile = argv.output && !isSolFile(argv.output)
+      }
+      
       if (argv.output) {
         if (isSolFile(argv.output)) {
           if (inputFiles.length > 1) {
@@ -102,22 +114,31 @@ yargs
       } else {
         argv.output = process.cwd();
       }
-      const options = {
+      
+      const options: GeneratorOptions = {
         inline,
         oversizedInputs: !exact,
         unsafe,
-        noComments
+        noComments,
+        constantsFile
       };
-      console.log(options)
-      
+      const context = new FileContext(options);
       for (const inputFile of inputFiles) {
         let outputFile = argv.output;
-        const { code, libraryName } = UnpackerGen.createLibrary(inputFile.structs, options);
+        const { code, libraryName } = UnpackerGen.createLibrary(inputFile.structs, context);
         if (!isSolFile(outputFile)) {
           const outputName = libraryName || `${inputFile.fileName}Coder`;
           outputFile = path.join(outputFile, `${outputName}.sol`) ;
         }
         fs.writeFileSync(outputFile, code);
+      }
+      if (constantsFile) {
+        const outputFilePath = path.join(argv.output, 'CoderConstants.sol');
+        const constantsFile = arrJoiner([
+          ...generateFileHeader(true, false),
+          ...context.constants
+        ]);
+        fs.writeFileSync(outputFilePath, constantsFile)
       }
     }
   )

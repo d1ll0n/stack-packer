@@ -10,7 +10,7 @@ import {
   generateFieldAccessors,
 } from './functions';
 import { generateNotice } from './comments';
-import { GeneratorOptions, FileContext } from './context';
+import { GeneratorOptions, FileContext, generateFileHeader } from './context';
 import { prettierFormat } from './prettier';
 
 // Function to strip comments in a string
@@ -20,13 +20,12 @@ function strip(str: string) {
   return str.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g,'').trim();
 }
 
-export function generateCoderLibrary(struct: AbiStruct, opts: GeneratorOptions) {
+export function generateCoderLibrary(struct: AbiStruct, context: FileContext) {
 	console.log('ENTERING UNPACKER');
 	if (struct.dynamic) {
 		throw Error('Does not support dynamic structs');
 	}
 
-	const context = new FileContext(opts);
 	const fields = processFields(struct, context);
 
 	for (const field of fields) {
@@ -58,10 +57,7 @@ export function generateCoderLibrary(struct: AbiStruct, opts: GeneratorOptions) 
 	context.constants.sort();
 
 	const topLevel = [
-		'',
 		...typeDef,
-		'',
-		...context.constants,
 		'',
 		`library ${struct.name}Coder {`,
 		decodeFunctionBlock,
@@ -76,7 +72,7 @@ export function generateCoderLibrary(struct: AbiStruct, opts: GeneratorOptions) 
 }
 
 export class UnpackerGen {
-	static createLibrary(structsAndEnums: Array<AbiStruct | AbiEnum>, opts: GeneratorOptions): {
+	static createLibrary(structsAndEnums: Array<AbiStruct | AbiEnum>, context: FileContext): {
     code: string;
     libraryName?: string;
   } {
@@ -92,24 +88,21 @@ export class UnpackerGen {
         );
 			} else {
 				libraryCode.push(
-          generateCoderLibrary(structOrEnum, opts),
+          generateCoderLibrary(structOrEnum, context),
           ''
         );
+        context.clearCode();
 			}
 		}
 		if (libraryCode.length && libraryCode[libraryCode.length - 1] === '') {
 			libraryCode.pop();
 		}
     let code = arrJoiner([
-      '// SPDX-License-Identifier: MIT',
-      `pragma solidity >=0.8.0;`,
-      '',
-      ...generateNotice(opts.unsafe),
-      '',
+      ...generateFileHeader(true, context.opts.unsafe, context.opts.constantsFile && ['import "./CoderConstants.sol";']),
       ...libraryCode,
     ])
 		code = prettierFormat(
-			opts.noComments ? strip(code) : code
+			context.opts.noComments ? strip(code) : code
 		);
     const structs = structsAndEnums.filter(f => f.meta === 'struct');
     const libraryName = structs.length === 1 && `${structs[0].name}Coder`;
