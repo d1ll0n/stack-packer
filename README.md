@@ -101,7 +101,7 @@ This package will currently only work with structs that have a total size at or 
 # Features Overview
 Structs can be defined using normal Solidity syntax and can set configuration options with some added syntax.
 
-Parameters can use any type size so long as the whole struct fits into a single word - uints do not need to be multiples of 8, e.g. `uint2 a;` and `uint6 b;` are valid.
+Parameters can use any type size so long as the whole struct fits into a single word - uints do not need to be multiples of 8, e.g. `uint2 a;` and `uint6 b;` are valid. Signed integers must use sizes that are multiples of 8 due to the specific implementation of `signextend` in the EVM.
 
 stack-packer has three changes to normal `struct` declaration syntax:
 - groups
