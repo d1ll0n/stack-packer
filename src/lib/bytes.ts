@@ -39,8 +39,9 @@ export const getOmissionMask = (bitsBefore: number, size: number) => {
 
 export const getInclusionMask = (bits: number) => `0x${maxUint(bits).toString(16)}`
 
-export const bitsRequired = (n: number): number => {
+export const bitsRequired = (n: number, roundUp?: boolean): number => {
 	let a = Math.ceil(Math.log2(n + 1));
-	let m = a % 8;
-	return m == 0 ? a : a + 8 - m;
+  return (roundUp && a % 8) ? a + (8 - (a % 8)) : a
+	// let m = a % 8;
+	// return m == 0 ? a : a + 8 - m;
 };

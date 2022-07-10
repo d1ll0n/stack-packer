@@ -4,8 +4,12 @@ import {
   AbiFunction,
   AbiStruct,
   ArrayJoinInput,
+  CodeGenFunction,
+  ProcessedField,
+  ProcessedGroup,
+  ProcessedStruct
 } from "../types";
-import { applyCoderType, applyGroupAccessCoder, getParameterDefinition, ProcessedField, shouldCheckForOverflow, toTypeName } from './fields'
+import { applyCoderType, applyGroupAccessCoder, shouldCheckForOverflow, toTypeName } from './fields'
 import _ from "lodash";
 import { prefixFirstString, suffixLastString, toArray } from "../lib/text";
 import { FileContext } from "./context";
@@ -14,151 +18,117 @@ import keccak256 from "keccak256";
 import { getGroupOmissionMask, getMaxUint, toHex } from "../lib/bytes";
 import { GroupType } from "../parser/types";
 
-const getFieldsGetter = (name: string, fields: ProcessedField[]) => buildFunctionBlock(
+const getFieldsGetter = (name: string, struct: AbiStruct, fields: ProcessedField[]): CodeGenFunction => ({
   name,
-  `${fields[0].structName} encoded`,
-  fields.map((field) => field.parameterDefinition),
-  buildAssemblyBlock(fields.map((field) => field.assignment))
-);
+  inputs: [{ definition:`${fields[0].structName} encoded`, name: 'encoded', type: struct }],  
+  outputs: fields.map((field) => ({ definition:field.parameterDefinition, name: field.name, type: field.type })),
+  visibility: 'pure',
+  location: 'internal',
+  body: buildAssemblyBlock(fields.map((field) => field.assignment)),
+  internalType: 'getter',
+  inputFields: [],
+  outputFields: fields
+})
 
-export const getDecodeFunction = (struct: AbiStruct, fields: ProcessedField[]) => {
-  // const fieldCopies = fields.map(field => ({ ...field }));
-  if (struct.accessors) {
-    if (struct.accessors.getterCoderType) {
-      // todo - better resolution of type overrides
-    } else {
-      // If an accessors block is defined and a getter is not,
-      // do not generate a getter
-      return []
-    }
+export const getDecodeGroupFunction = (struct: AbiStruct, group: ProcessedGroup) => {
+  const { fields, generateGetter, getterName, getterCoderType } = group
+  if (!generateGetter) return undefined;
+  if (getterCoderType) {
+    applyGroupAccessCoder(group, fields, 'get')
   }
-  return getFieldsGetter('decode', fields)
+  return getFieldsGetter(getterName, struct, fields)
 }
-export const getDecodeGroupFunction = (group: GroupType, fields: ProcessedField[]) => {
-  if (group.accessors) {
-    if (group.accessors.getterCoderType) {
-      applyGroupAccessCoder(group, fields, 'get')
-    } else {
-      // If an accessors block is defined and a getter is not,
-      // do not generate a getter
-      return []
-    }
+
+export function getEncodeGroupFunction(
+  struct: ProcessedStruct,
+  group: ProcessedGroup,
+  context: FileContext
+): CodeGenFunction | undefined {
+  const { fields, generateSetter, setterName, setterCoderType } = group
+  if (!generateSetter) return undefined;
+  if (setterCoderType) {
+    applyGroupAccessCoder(group, fields, 'set')
   }
-  return getFieldsGetter(`get${group.name.toPascalCase()}`, fields)
+  return getEncoder(struct, fields, context, setterName, group.omitMaskReference)
+}
+
+export const getDecodeFunction = (struct: ProcessedStruct, fields: ProcessedField[]) => {
+  if (!struct.generateGetter) return undefined;
+  return getFieldsGetter('decode', struct, fields)
 }
 
 export function getEncodeFunction(
-  struct: AbiStruct,
+  struct: ProcessedStruct,
   fields: ProcessedField[],
   context: FileContext
-): ArrayJoinInput<string>[] {
-  // const fieldCopies = fields.map(field => ({ ...field }));
-  if (struct.accessors) {
-    if (struct.accessors.setterCoderType) {
-      // todo - better resolution of type overrides
-    } else {
-      // If an accessors block is defined and a setter is not,
-      // do not generate a setter
-      return []
-    }
-  }
-  let encodeChunks = buildNestedAssemblyOr(fields);
-  encodeChunks = prefixFirstString(encodeChunks, 'encoded := ')
-  
-  return buildFunctionBlock(
-    "encode",
-    fields.map((field) => field.parameterDefinition),
-    `${fields[0].structName} encoded`,
-    buildAssemblyBlock([
-      ...getOverflowCheck(fields, context),
-      ...toArray(encodeChunks)
-    ])
-  );
+): CodeGenFunction | undefined {
+  if (!struct.generateSetter) return undefined;
+  return getEncoder(struct, fields, context, `encode`)
 }
 
-export const generateFieldSetter = (
-  field: ProcessedField,
-  context: FileContext
-): ArrayJoinInput<string> => {
-  const writeFn = buildFunctionBlock(
-    field.setterName,
-    [
-      `${field.structName} old`,
-      field.parameterDefinition
-    ],
-    `${field.structName} updated`,
-    buildAssemblyBlock([
-      ...getOverflowCheck([field], context),
-      `updated := ${field.update}`
-    ])
-  );
-  return writeFn;
-};
+export const generateFieldGetter = (struct: AbiStruct, field: ProcessedField) => getFieldsGetter(field.getterName, struct, [field])
 
-
-export const generateFieldGetter = (field: ProcessedField) => getFieldsGetter(field.getterName, [field])
-
-export function generateFieldAccessors(field: ProcessedField, context: FileContext) {
+export function generateFieldAccessors(struct: AbiStruct, field: ProcessedField, context: FileContext): CodeGenFunction[] {
   if (!field.generateGetter && !field.generateSetter) {
     return [];
   }
-  const code: ArrayJoinInput<string>[] = [];
+  const functions: Array<CodeGenFunction | undefined> = [];
   if (field.generateGetter) {
     const fieldCopy = { ...field }
     if (field.getterCoderType) {
       applyCoderType(fieldCopy, field.getterCoderType)
     }
-    code.push('', ...generateFieldGetter(fieldCopy))
+    functions.push(generateFieldGetter(struct, fieldCopy))
   }
   if (field.generateSetter) {
     const fieldCopy = { ...field }
     if (field.setterCoderType) {
       applyCoderType(fieldCopy, field.setterCoderType)
     }
-    code.push('', ...generateFieldSetter(fieldCopy, context))
+    functions.push(generateFieldSetter(struct, fieldCopy, context))
   }
-  context.addSection(
-    `${field.structName}.${field.originalName} coders`,
-    code
-  )
+  return functions.filter(Boolean)
 }
 
-export function getEncodeGroupFunction(
-  group: GroupType,
+const getEncoder = (
+  struct: AbiStruct,
   fields: ProcessedField[],
-  context: FileContext
-) {
-  if (group.accessors) {
-    if (group.accessors.setterCoderType) {
-      applyGroupAccessCoder(group, fields, 'set')
-    } else {
-      // If an accessors block is defined and a getter is not,
-      // do not generate a getter
-      return []
-    }
+  context: FileContext,
+  name: string,
+  maskReference?: string
+): CodeGenFunction => {
+  const orBlocks: { positioned: string; }[] = [...fields];
+  const inputs = fields.map((field) => ({ definition:field.parameterDefinition, name: field.name, type: field.type }));
+  let outputName = 'encoded'
+  if (maskReference) {
+    orBlocks.unshift({ positioned: `and(old, ${maskReference})` })
+    inputs.unshift({ definition:`${fields[0].structName} old`, name: 'old', type: struct })
+    outputName = 'updated'
   }
-  const groupMask = getGroupOmissionMask(fields);
-  const omitMaskName = `${fields[0].structName}_${group.name}_maskOut`;
-  const maskReference = context.addConstant(omitMaskName, groupMask);
-
-  let chunks = buildNestedAssemblyOr([
-    { positioned: `and(old, ${maskReference})` },
-    ...fields,
-  ]);
-  chunks = prefixFirstString(chunks, 'updated := ')
-  return buildFunctionBlock(
-    `set${group.name.toPascalCase()}`,
-    [
-      `${fields[0].structName} old`,
-      ...fields.map((field) => field.parameterDefinition),
-    ],
-    `${fields[0].structName} updated`,
-    buildAssemblyBlock([
+  let encodeChunks = buildNestedAssemblyOr(orBlocks);
+  encodeChunks = prefixFirstString(encodeChunks, `${outputName} := `)
+  return {
+    name,
+    inputs,
+    outputs: [{ definition:`${fields[0].structName} ${outputName}`, name: outputName, type: struct }],  
+    visibility: 'pure',
+    location: 'internal',
+    body: buildAssemblyBlock([
       ...getOverflowCheck(fields, context),
-      ...toArray(chunks)
-    ])
-  );
+      ...toArray(encodeChunks)
+    ]),
+    internalType: 'setter',
+    outputFields: [],
+    inputFields: fields
+  }
 }
+
+export const generateFieldSetter = (
+  struct: AbiStruct,
+  field: ProcessedField,
+  context: FileContext
+): CodeGenFunction => getEncoder(struct, [field], context, field.setterName, field.omitMaskReference)
+
 
 const overflowRevert = (constantReferences: string[]) => ([
   // '// Store the Panic error signature.',
@@ -187,7 +157,7 @@ export function getOverflowCheck(originalFields: ProcessedField[], context: File
     // const maxSizeName = `MaxUint${field.type.size}`;
     // const maxSizeHex = getMaxUint(field.type.size)
     // const maxSizeReference = context.addConstant(maxSizeName, maxSizeHex);
-    overflowChecks.push({ positioned: `gt(${field.name}, ${field.maxValueReference})` })
+    overflowChecks.push({ positioned: field.getOverflowCheck(field.name) })
   }
   let overflowCondition = toArray(buildNestedAssemblyOr(overflowChecks));
   prefixFirstString(overflowCondition, 'if ');

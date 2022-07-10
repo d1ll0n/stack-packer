@@ -12,23 +12,11 @@ export const toCommentSeparator = (comment: string) => {
   ];
 };
 
-export const toNatspec = (comments: CommentLines[]) => {
-  const linesOut: string[] = ["/**"];
-  for (const comment of comments) {
-    if (!comment.text.length) continue;
-    const [firstLine, ...otherLines] =
-      typeof comment.text === "string" ? [comment.text] : comment.text;
-    const lines = [
-      ` * @${comment.type} ${firstLine}`,
-      ...otherLines.map(
-        (ln) => ` *${" ".repeat(comment.type.length + 2)} ${ln}`
-      ),
-    ];
-    linesOut.push(...lines);
-  }
-  linesOut.push(" */");
-  return linesOut;
-};
+export const toNatspec = (comments: string[]) => ([
+  "/**",
+  ...comments.map(ln => ` * ${ln}`),
+  ' */'
+]);
 
 const UnsafeWarning = [
   `//                           --- WARNING ---`,

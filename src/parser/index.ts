@@ -4,7 +4,7 @@ import { AbiType, AbiStructField, AbiArray, AbiElementaryType, AbiErrorField, Ab
 import { bitsRequired } from '../lib/bytes';
 // import { bitsRequired, elementaryToTypeDef } from '../lib/helpers';
 
-export function convertFieldType(typeName: TypeName, structs: Record<string, AbiType>): AbiType {
+export function convertFieldType(typeName: TypeName, structs: Record<string, AbiStruct>, enums: Record<string, AbiEnum>): AbiType {
   const { type, baseTypeName, name, namePath, length } = typeName;
   switch(type) {
     case 'ArrayTypeName':
@@ -18,7 +18,7 @@ export function convertFieldType(typeName: TypeName, structs: Record<string, Abi
         size
       } as AbiArray
     case 'ElementaryTypeName': return elementaryToTypeDef(name) as AbiElementaryType;
-    case 'UserDefinedTypeName': return structs[namePath] || null;
+    case 'UserDefinedTypeName': return structs[namePath] || enums[namePath] || null;
   }
 }
 
@@ -106,6 +106,7 @@ export class ParserWrapper {
       return this.putEnum(namePath, out);
     }
     if (input.type == 'StructDefinition') {
+      // console.log(input)
       const { name, fields: _fields, namePath, coderType, accessors, groups } = <StructType> input;
       const { fields, size, dynamic } = this.handleFields(_fields);
 
@@ -166,7 +167,7 @@ export class ParserWrapper {
   }
 
   convertFieldType(typeName: TypeName): AbiType {
-    return convertFieldType(typeName, this.structs as any)
+    return convertFieldType(typeName, this.structs, this.enums)
   }
 
   putStruct(namePath: string, struct: AbiStruct) {
@@ -235,6 +236,17 @@ export const elementaryToTypeDef = (typeName: string): AbiElementaryType => {
       size: size ? +size : null,
       type: "uint",
     };
+  }
+  const isInt = /int(\d{0,3})/g.exec(typeName);
+  if (isInt) {
+    const size = isInt[1]
+    if (!size || +size % 8) throw Error(`Signed ints must have size that is a multiple of 8`)
+    return {
+      meta: 'elementary',
+      dynamic: false,
+      size: size ? +size : null,
+      type: "int",
+    }
   }
   const isBytes = /bytes(\d{0,2})/g.exec(typeName);
   if (isBytes) {
