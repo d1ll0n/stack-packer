@@ -1,0 +1,25 @@
+{
+  "name": "fake-project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.1.0",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@types/chai": "^4.3.1",
+    "@types/node": "^18.0.3",
+    "ethereum-waffle": "^3.4.4",
+    "ethers": "^5.0.0",
+    "hardhat": "^2.10.0"
+  },
+  "scripts": {
+    "test": "hardhat test",
+    "clean": "rm -rf artifacts/ contracts/ cache/ test/ && mkdir contracts",
+    "test:input": "yarn clean && ts-node ../src/cli.ts ./type-defs && yarn test",
+    "test:input-output": "yarn clean && ts-node ../src/cli.ts ./type-defs ./contracts/helpers && yarn test",
+    "test:input-output-soltest": "yarn clean && ts-node ../src/cli.ts ./type-defs ./contracts/utils ./contracts/test/types && yarn test",
+    "test:input-output-soltest-hhtest": "yarn clean && ts-node ../src/cli.ts ./type-defs ./contracts/lib ./contracts/test/lib ./test/types && yarn test",
+    "test:all": "yarn test:input && yarn test:input-output && yarn test:input-output-soltest && yarn test:input-output-soltest-hhtest"
+  }
+}
+
