@@ -52,6 +52,8 @@ export function generateCoderLibrary(struct: ProcessedStruct, context: FileConte
 		...fields.map((field) => `//   ${toTypeName(field.type)} ${field.originalName};`),
 		'// }',
 		`type ${struct.name} is uint256;`,
+    '',
+    `${struct.name} constant Default${struct.name} = ${struct.name}.wrap(0);`
 	];
 	context.constants.sort();
 
