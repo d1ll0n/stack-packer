@@ -20,6 +20,8 @@ import "./CoderConstants.sol";
 // }
 type Data3 is uint256;
 
+Data3 constant DefaultData3 = Data3.wrap(0);
+
 library Data3Coder {
 
 /*//////////////////////////////////////////////////////////////

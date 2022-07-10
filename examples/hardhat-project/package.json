@@ -15,10 +15,10 @@
   "scripts": {
     "test": "hardhat test",
     "clean": "rm -rf artifacts/ contracts/ cache/ test/ && mkdir contracts",
-    "test:input": "yarn clean && ts-node ../src/cli.ts ./type-defs && yarn test",
-    "test:input-output": "yarn clean && ts-node ../src/cli.ts ./type-defs ./contracts/helpers && yarn test",
-    "test:input-output-soltest": "yarn clean && ts-node ../src/cli.ts ./type-defs ./contracts/utils ./contracts/test/types && yarn test",
-    "test:input-output-soltest-hhtest": "yarn clean && ts-node ../src/cli.ts ./type-defs ./contracts/lib ./contracts/test/lib ./test/types && yarn test",
+    "test:input": "yarn clean && ts-node ../../src/cli.ts ./type-defs && yarn test",
+    "test:input-output": "yarn clean && ts-node ../../src/cli.ts ./type-defs ./contracts/helpers && yarn test",
+    "test:input-output-soltest": "yarn clean && ts-node ../../src/cli.ts ./type-defs ./contracts/utils ./contracts/test/types && yarn test",
+    "test:input-output-soltest-hhtest": "yarn clean && ts-node ../../src/cli.ts ./type-defs ./contracts/lib ./contracts/test/lib ./test/types && yarn test",
     "test:all": "yarn test:input && yarn test:input-output && yarn test:input-output-soltest && yarn test:input-output-soltest-hhtest"
   }
 }

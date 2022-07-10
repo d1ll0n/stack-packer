@@ -18,6 +18,8 @@ import "./CoderConstants.sol";
 // }
 type Data1 is uint256;
 
+Data1 constant DefaultData1 = Data1.wrap(0);
+
 library Data1Coder {
 
 /*//////////////////////////////////////////////////////////////
