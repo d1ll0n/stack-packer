@@ -1,7 +1,7 @@
 // const strip = require('strip-comments');
-import { AbiStruct, AbiEnum } from '../types';
+import { AbiStruct, AbiEnum, ProcessedField, ProcessedStruct } from '../types';
 import { arrJoiner } from '../lib/text';
-import { toTypeName, abiStructToSol, processFields, resolveGroupMembers } from './fields';
+import { toTypeName, abiStructToSol, processFields, resolveGroupMembers, processStruct } from './fields';
 import {
 	getDecodeFunction,
 	getEncodeFunction,
@@ -12,6 +12,9 @@ import {
 import { generateNotice } from './comments';
 import { GeneratorOptions, FileContext, generateFileHeader } from './context';
 import { prettierFormat } from './prettier';
+import { generateExternalCoder, generateHardhatTest } from './test';
+import path from 'path';
+import { getDir, isSolFile } from '../project';
 
 // Function to strip comments in a string
 // Code created with the help of Stack Overflow answer by AymKdn
@@ -20,33 +23,29 @@ function strip(str: string) {
   return str.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g,'').trim();
 }
 
-export function generateCoderLibrary(struct: AbiStruct, context: FileContext) {
-	console.log('ENTERING UNPACKER');
+export function generateCoderLibrary(struct: ProcessedStruct, context: FileContext) {
 	if (struct.dynamic) {
 		throw Error('Does not support dynamic structs');
 	}
 
-	const fields = processFields(struct, context);
+  const { fields, groups } = struct
 
-	for (const field of fields) {
-    generateFieldAccessors(field, context)
-	}
+  context.addFunctions([
+    getDecodeFunction(struct, fields),
+    getEncodeFunction(struct, fields, context),
+  ].filter(Boolean), struct.name)
 
-  for (const group of struct.groups) {
-    const groupFields = resolveGroupMembers(struct, group, fields);
-    context.addSection(
-      `${struct.name} ${group.name} Group`,
-      [
-        '',
-        getEncodeGroupFunction(group, groupFields, context),
-        '',
-        getDecodeGroupFunction(group, groupFields)
-      ]
-    )
+  for (const group of groups) {
+    const functions = [
+      getEncodeGroupFunction(struct, group, context),
+      getDecodeGroupFunction(struct, group)
+    ].filter(Boolean)
+    context.addFunctions(functions, `${struct.name} ${group.name} coders`)
   }
 
-	const decodeFunctionBlock = getDecodeFunction(struct, fields);
-	const encodeFunctionBlock = getEncodeFunction(struct, fields, context);
+	for (const field of fields) {
+    context.addFunctions(generateFieldAccessors(struct, field, context),  `${field.structName}.${field.originalName} coders`)
+	}
 
 	const typeDef = [
 		`// struct ${struct.name} {`,
@@ -60,10 +59,10 @@ export function generateCoderLibrary(struct: AbiStruct, context: FileContext) {
 		...typeDef,
 		'',
 		`library ${struct.name}Coder {`,
-		decodeFunctionBlock,
-		'',
-		encodeFunctionBlock,
-		'',
+		// decodeFunctionBlock,
+		// '',
+		// encodeFunctionBlock,
+		// '',
 		...context.code,
 		`}`,
 	];
@@ -71,12 +70,29 @@ export function generateCoderLibrary(struct: AbiStruct, context: FileContext) {
 	return arrJoiner(topLevel);
 }
 
+function generateSolFile(codeLines: string[], context: FileContext, imports: string[]) {
+  let code = arrJoiner([
+    ...generateFileHeader(true, context.opts.unsafe, imports),
+    ...codeLines,
+  ])
+  /* code = prettierFormat(
+    context.opts.noComments ? strip(code) : code
+  ); */
+  return code;
+}
+
 export class UnpackerGen {
 	static createLibrary(structsAndEnums: Array<AbiStruct | AbiEnum>, context: FileContext): {
     code: string;
     libraryName?: string;
+    externalCode: string;
+    hardhatTest: string
   } {
 		const libraryCode: string[] = [];
+    const externalCode: string[] = [];
+    const hardhatTests: string[] = [];
+    let processedStruct: ProcessedStruct;
+    
 		for (let structOrEnum of structsAndEnums) {
 			if (structOrEnum.dynamic) {
 				throw Error('Dynamic sized structs not currently supported');
@@ -87,28 +103,47 @@ export class UnpackerGen {
           ''
         );
 			} else {
-				libraryCode.push(
-          generateCoderLibrary(structOrEnum, context),
-          ''
+        processedStruct = processStruct(structOrEnum, context)
+        const code = generateCoderLibrary(processedStruct, context)
+        if (!context.opts.constantsFile) {
+          libraryCode.push(arrJoiner(context.constants))
+        }
+        libraryCode.push(code, '');
+        const externalFns = generateExternalCoder(
+          context.functions,
+          structOrEnum.name,
+          `_${structOrEnum.name.toCamelCase()}`,
+          `${structOrEnum.name}Coder`
         );
+        externalCode.push(arrJoiner(externalFns.externalCode))
+        hardhatTests.push(generateHardhatTest(processedStruct, externalFns.externalFunctions, structOrEnum.name))
         context.clearCode();
 			}
 		}
 		if (libraryCode.length && libraryCode[libraryCode.length - 1] === '') {
 			libraryCode.pop();
 		}
-    let code = arrJoiner([
-      ...generateFileHeader(true, context.opts.unsafe, context.opts.constantsFile && ['import "./CoderConstants.sol";']),
-      ...libraryCode,
-    ])
-		code = prettierFormat(
-			context.opts.noComments ? strip(code) : code
-		);
+    // let code = arrJoiner([
+    //   ...generateFileHeader(true, context.opts.unsafe, context.opts.constantsFile && ['import "./CoderConstants.sol";']),
+    //   ...libraryCode,
+    // ])
+		// code = prettierFormat(
+		// 	context.opts.noComments ? strip(code) : code
+		// );
+    // const testCode = arrJoiner(generateExternalCoder(context.functions, ))
     const structs = structsAndEnums.filter(f => f.meta === 'struct');
     const libraryName = structs.length === 1 && `${structs[0].name}Coder`;
+    const code = generateSolFile(libraryCode, context, context.opts.constantsFile && ['import "./CoderConstants.sol";']);
+    const coderPath = isSolFile(context.opts.output) ? context.opts.output : path.join(context.opts.output, `${libraryName}.sol`);
+    const testPath = context.opts.testContractsDirectory || getDir(coderPath);
+
+    const relativePath = path.normalize(path.relative(testPath, coderPath))
+    const externalFile = generateSolFile(externalCode, context, [`import "${relativePath}";`]);
     return {
       code,
-      libraryName
+      externalCode: externalFile,
+      libraryName,
+      hardhatTest: arrJoiner(hardhatTests)
     }
 	}
 }

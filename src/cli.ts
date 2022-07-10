@@ -7,43 +7,55 @@ import { AbiStruct, AbiEnum } from './types';
 import yargs from 'yargs'
 import { FileContext, generateFileHeader, GeneratorOptions } from './code-gen/context';
 import { arrJoiner } from './lib/text';
+import { getDir, getExtension, isDir, isSolFile, mkdirIfNotExists } from './project/paths';
+import {
+  FileWithStructs,
+  getInputFiles,
+  getHardhatProjectInfo,
+} from './project'
 
-type FileWithStructs = { fileName: string; structs: Array<AbiStruct | AbiEnum> }
+const getPaths = (argv: { output: string; input: string; constantsFile: any; testContracts?: string; hardhatOutput?: string; }) => {
+  const inputFiles = getInputFiles(argv);
+  
+  const hardhatProjectInfo = getHardhatProjectInfo(argv);
 
-const isSolFile = (_path: string) => path.parse(_path).ext === '.sol';
-
-const isDir = (_path: string) => fs.lstatSync(_path).isDirectory();
-
-const getFiles = (argv: { input: string }): FileWithStructs[] => {
-  if (!fs.existsSync(argv.input)) {
-    throw new Error(`File or directory not found: ${argv.input}`);
-  }
-  const files: FileWithStructs[] = [];
-  const filePaths: string[] = [];
-  if (isDir(argv.input)) {
-    const fileNames = fs.readdirSync(argv.input).filter(isSolFile);
-    for (const fileName of fileNames) {
-      const filePath = path.join(argv.input, fileName);
-      filePaths.push(filePath);
+  if (argv.output) {
+    if (isSolFile(argv.output)) {
+      if (inputFiles.length > 1) {
+        throw new Error('Can not specify file output with directory input')
+      }
+    } else if (!fs.existsSync(argv.output)) {
+      fs.mkdirSync(argv.output);
     }
   } else {
-    if (!isSolFile(argv.input)) {
-      throw new Error(`${argv.input} is not a Solidity file`)
+    if (hardhatProjectInfo?.contractsDirectory) {
+      argv.output = mkdirIfNotExists(path.join(hardhatProjectInfo.contractsDirectory, 'types'))
+    } else {
+      argv.output = process.cwd();
     }
-    filePaths.push(argv.input);
   }
-  for (const filePath of filePaths) {
-    const { name } = path.parse(filePath);
-    const code = fs.readFileSync(filePath, 'utf8');
-    const structs = parseCode(code) as Array<AbiStruct | AbiEnum>;
-    files.push({ fileName: name, structs })
+  const makeConstantsFile = argv.constantsFile === undefined
+    ? argv.output && !isSolFile(argv.output)
+    : argv.constantsFile;
+
+  const constantsFilePath = makeConstantsFile && path.join(getDir(argv.output), './CoderConstants.sol');
+
+  const testContractsDirectory = argv.testContracts || hardhatProjectInfo?.testContractsDirectory
+  const hardhatTestsDirectory = argv.hardhatOutput || hardhatProjectInfo?.hardhatTestsDirectory
+
+  return {
+    inputFiles,
+    output: argv.output,
+    constantsFilePath,
+    testContractsDirectory,
+    hardhatTestsDirectory,
+    projectType: hardhatProjectInfo.projectType,
   }
-  return files;
 }
 
 yargs
   .command(
-    '$0 <input> [output]',
+    '$0 <input> [output] [testContracts] [hardhatOutput]',
     'Generate Solidity libraries for packed encoding of types on the stack.',
     {
       input: {
@@ -88,6 +100,18 @@ yargs
         describe: 'Create a separate file for constants.',
         default: undefined,
         type: 'boolean'
+      },
+      testContracts: {
+        alias: 't',
+        describe: 'Directory to write solidity test files to. Defaults to closest contracts/test directory of a hardhat test project in working tree.',
+        default: '',
+        type: 'string'
+      },
+      hardhatOutput: {
+        alias: 'h',
+        describe: 'Directory to write Hardhat test files to. Defaults to closest test directory of a hardhat test project in working tree.',
+        default: '',
+        type: 'string'
       }
     },
     ({inline, exact, unsafe, noComments,  ...argv}) => {
@@ -97,48 +121,45 @@ yargs
         }
         console.log(`Generating library with unsafe casting.\nHope you know what you're doing...`)
       }
-      const inputFiles = getFiles(argv);
-      let constantsFile = argv.constantsFile
-      if (constantsFile === undefined) {
-        constantsFile = argv.output && !isSolFile(argv.output)
-      }
-      
-      if (argv.output) {
-        if (isSolFile(argv.output)) {
-          if (inputFiles.length > 1) {
-            throw new Error('Can not specify file output with directory input')
-          }
-        } else if (!fs.existsSync(argv.output)) {
-          fs.mkdirSync(argv.output);
-        }
-      } else {
-        argv.output = process.cwd();
-      }
+      const { inputFiles, constantsFilePath, testContractsDirectory, hardhatTestsDirectory, ...otherPaths } = getPaths(argv);
       
       const options: GeneratorOptions = {
         inline,
         oversizedInputs: !exact,
         unsafe,
         noComments,
-        constantsFile
+        constantsFile: Boolean(constantsFilePath),
+        testContractsDirectory,
+        hardhatTestsDirectory,
+        ...otherPaths
       };
       const context = new FileContext(options);
       for (const inputFile of inputFiles) {
         let outputFile = argv.output;
-        const { code, libraryName } = UnpackerGen.createLibrary(inputFile.structs, context);
+        
+        const { code, libraryName, externalCode, hardhatTest } = UnpackerGen.createLibrary(inputFile.structs, context);
+        if (testContractsDirectory && hardhatTestsDirectory) {
+          mkdirIfNotExists(hardhatTestsDirectory)
+          mkdirIfNotExists(testContractsDirectory)
+          const externalOutputFile = path.join(testContractsDirectory, `External${libraryName}.sol`)
+          const hardhatTestFile = path.join(hardhatTestsDirectory, `${libraryName}.spec.ts`);
+          fs.writeFileSync(externalOutputFile, externalCode);
+          fs.writeFileSync(hardhatTestFile, hardhatTest);
+        }
         if (!isSolFile(outputFile)) {
           const outputName = libraryName || `${inputFile.fileName}Coder`;
           outputFile = path.join(outputFile, `${outputName}.sol`) ;
+          mkdirIfNotExists(outputFile)
         }
         fs.writeFileSync(outputFile, code);
       }
-      if (constantsFile) {
-        const outputFilePath = path.join(argv.output, 'CoderConstants.sol');
+      if (constantsFilePath) {
+        // const outputFilePath = path.join(argv.output, 'CoderConstants.sol');
         const constantsFile = arrJoiner([
           ...generateFileHeader(true, false),
           ...context.constants
         ]);
-        fs.writeFileSync(outputFilePath, constantsFile)
+        fs.writeFileSync(constantsFilePath, constantsFile)
       }
     }
   )

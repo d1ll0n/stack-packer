@@ -37,17 +37,29 @@ export function arrJoiner(arr: ArrayJoinInput) {
   return ret.join(`\n`);
 }
 
-type ModificationType = "set" | "prefix" | "suffix";
-type StringModification = {
-  type: ModificationType;
+type TypicalStringModification = {
+  type: "set" | "prefix" | "suffix";
   text: string;
-};
+}
+type CallbackStringModification = {
+  type: "callback"
+  cb: StringModificationCallback
+}
+
+type StringModificationCallback = (text: string) => string
+
+type StringModification = TypicalStringModification | CallbackStringModification;
+type ModificationType = StringModification['type']
 
 type ArrayModification = StringModification & {
   position: "first" | "last";
 };
 
-const modifyString = (original: string, { type, text }: StringModification) => {
+const modifyString = (original: string, modification: StringModification) => {
+  if (modification.type === 'callback') {
+    return modification.cb(original)
+  }
+  const { type, text } = modification;
   if (type === "set") return text;
   if (type === "prefix") return text.concat(original);
   // suffix
@@ -68,6 +80,9 @@ const modifyItem = (
   // If item is a string, update the array
   if (typeof modified === "string") {
     arrOrStr[index] = modified;
+  }
+  if (modified === undefined) {
+    arrOrStr.splice(index, 1)
   }
   return arrOrStr
 };
@@ -99,6 +114,19 @@ export const suffixLastString = (
   arrOrStr: ArrayJoinInput<string>,
   text: string
 ) => modifyItem(arrOrStr, { position: "last", type: "suffix", text });
+
+export const modifyFirstString = (
+  arrOrStr: ArrayJoinInput<string>,
+  cb: StringModificationCallback
+) => modifyItem(arrOrStr, { position: 'first', type: 'callback', cb })
+
+export const modifyLastString = (
+  arrOrStr: ArrayJoinInput<string>,
+  cb: StringModificationCallback
+) => modifyItem(arrOrStr, { position: 'last', type: 'callback', cb })
+
+export const removeTrailingNewLines = (arrOrStr: ArrayJoinInput<string>) =>
+  modifyLastString(arrOrStr, (str: string) => str === '' ? undefined : str)
 
 export const numberToPascalCaseWords = (n: number) => {
   const words = toWords(n).split("-");

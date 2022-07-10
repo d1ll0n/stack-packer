@@ -1,39 +1,21 @@
 import _ from "lodash";
 import { numberToPascalCaseWords } from '../lib/text'
-import { AbiType, AbiStruct, ArrayJoinInput, AbiStructField, AbiEnum } from '../types';
-import { getMaxUint, getOmissionMask, toHex } from '../lib/bytes';
+import { AbiType, AbiStruct, ArrayJoinInput, AbiStructField, AbiEnum, ProcessedField, ProcessedGroup, AccessorOptions, ProcessedStruct } from '../types';
+import { getGroupOmissionMask, getMaxUint, getOmissionMask, toHex } from '../lib/bytes';
 import { FileContext } from './context';
 import { ReservedKeywords } from './ReservedKeywords';
-import { CoderType, GroupType } from "../parser/types";
-
-export type ProcessedField =
-  AbiStructField & {
-    offset: number;
-    readFromWord: string;
-    positioned: string;
-    update: string;
-    parameterDefinition: string;
-    structName: string;
-    assignment: string;
-    originalName: string;
-    setterName: string;
-    getterName: string;
-    generateGetter: boolean;
-    generateSetter: boolean;
-    getterCoderType?: CoderType;
-    setterCoderType?: CoderType;
-    maxValueReference: string;
-  };
+import { Accessors, CoderType, GroupType } from "../parser/types";
 
 export const toTypeName = (def: AbiType, roundToNearestByte?: boolean): string => {
 	if (def.meta == 'elementary') {
 		switch (def.type) {
 			case 'uint':
+      case 'int':
         let size = def.size
         if (roundToNearestByte && size % 8) {
           size += (8 - (size % 8))
         }
-				return `uint${size}`;
+				return `${def.type}${size}`;
 			case 'bool':
 				return `bool`;
 			case 'byte':
@@ -125,14 +107,20 @@ export const getFieldSetterName = (field: ProcessedField) =>
 export const getFieldGetterName = (field: ProcessedField) =>
   `get${field.originalName.toPascalCase()}`;
 
-const uintAllowed = (typeName: AbiType) => (
-  typeName.meta === 'enum' || (
-    typeName.meta === 'elementary' && typeName.type === 'uint'
+const uintAllowed = (typeName: AbiType) => {
+  return (
+    typeName.meta === 'enum' || (
+      typeName.meta === 'elementary' && typeName.type === 'uint'
+    )
   )
+}
+
+const intAllowed = (typeName: AbiType) => (
+  typeName.meta === 'elementary' && typeName.type === 'int'
 )
 
 export const shouldCheckForOverflow = (field: AbiStructField): boolean => {
-  if (!uintAllowed(field.type) || field.coderType === 'unchecked') return false;
+  if (field.coderType === 'unchecked' || field.coderType === 'exact' || !(uintAllowed(field.type) || intAllowed(field.type))) return false;
   // Check for overflow if type size is not divisible by 8
   return field.coderType === 'checked' || field.type.size % 8 > 0;
 }
@@ -140,15 +128,25 @@ export const shouldCheckForOverflow = (field: AbiStructField): boolean => {
 export const getParameterDefinition = (field: AbiStructField) => {
   // If field is not a uint or enum, or `exact` is true, use real type
   // otherwise, use uint256
-  const typeUsed = (
+  const typeUsed = field.coderType === 'exact'
+    ? toTypeName(field.type, true)
+    : uintAllowed(field.type)
+      ? 'uint256'
+      : intAllowed(field.type)
+        ? 'int256'
+        : toTypeName(field.type)
+
+/*   (
     (field.coderType === 'exact') || !uintAllowed(field.type)
-  ) ? toTypeName(field.type, true) : 'uint256';
+  ) ? toTypeName(field.type, true) : 'uint256'; */
   
   return `${typeUsed} ${field.name}`
 }
 
 const getMaxUintForField = (field: AbiStructField) => {
-  const name = `MaxUint${field.type.size}`;
+  const name = field.type.meta === 'elementary' && field.type.type === 'int'
+  ? `MaxInt${field.type.size}`
+  : `MaxUint${field.type.size}`;
   const value = getMaxUint(field.type.size);
   return { name, value }
 }
@@ -168,12 +166,13 @@ export function processFields(
       field.name = `_${field.name}`;
     }
     const readFromWord = getReadField(struct, field, offset, context, maxValueReference);
-    const { update, position: positioned } = getSetField(
+    const { update, position: positioned, omitMaskReference } = getSetField(
       struct,
       field,
       offset,
       context,
-      originalName
+      originalName,
+      maxValueReference
     );
     withExtras.push({
       ...field,
@@ -185,17 +184,58 @@ export function processFields(
       structName: struct.name,
       assignment: `${field.name} := ${readFromWord}`,
       originalName,
-      getterName: `get${originalName.toPascalCase()}`,
-      setterName: `set${originalName.toPascalCase()}`,
-      generateGetter: Boolean(!field.accessors || field.accessors.getterCoderType),
-      generateSetter: Boolean(!field.accessors || field.accessors.setterCoderType),
-      getterCoderType: field.accessors?.getterCoderType,
-      setterCoderType: field.accessors?.setterCoderType,
-      maxValueReference
+      ...getAccessorOptions(originalName, field.accessors),
+      getOverflowCheck: (fieldReference: string) => {
+        if (intAllowed(field.type)) {
+          const bytesLess1 = (field.type.size / 8) - 1;
+          return `xor(${fieldReference}, signextend(${bytesLess1}, ${fieldReference}))`
+        }
+        return `gt(${fieldReference}, ${maxValueReference})`
+      },
+      maxValueReference,
+      omitMaskReference
     });
     offset += field.type.size;
   }
   return withExtras;
+}
+
+const getAccessorOptions = (name: string, accessors?: Accessors): AccessorOptions => ({
+  generateGetter: Boolean(!accessors || accessors.getterCoderType),
+  generateSetter: Boolean(!accessors || accessors.setterCoderType),
+  getterCoderType: accessors?.getterCoderType,
+  setterCoderType: accessors?.setterCoderType,
+  getterName: `get${name.toPascalCase()}`,
+  setterName: `set${name.toPascalCase()}`,
+})
+
+export const processStruct = (
+  abiStruct: AbiStruct,
+  context: FileContext
+) => {
+  const fields = processFields(abiStruct, context);
+  const struct: ProcessedStruct = {
+    ...abiStruct,
+    fields,
+    ...getAccessorOptions(abiStruct.name, abiStruct.accessors),
+    getterName: 'decode',
+    setterName: 'encode',
+    groups: []
+  }
+  for (const abiGroup of abiStruct.groups) {
+    const groupFields = resolveGroupMembers(struct, abiGroup, fields)
+    const groupMask = getGroupOmissionMask(groupFields);
+    const omitMaskName = `${struct.name}_${abiGroup.name}_maskOut`;
+    const maskReference = context.addConstant(omitMaskName, groupMask);
+    const group: ProcessedGroup = {
+      ...abiGroup,
+      fields: groupFields,
+      ...getAccessorOptions(abiGroup.name, abiGroup.accessors),
+      omitMaskReference: maskReference
+    }
+    struct.groups.push(group)
+  }
+  return struct;
 }
 
 export const getSetField = (
@@ -203,7 +243,8 @@ export const getSetField = (
   field: AbiStructField,
   offset: number,
   context: FileContext,
-  originalName: string
+  originalName: string,
+  maxValueReference: string
 ) => {
   if (field.type.meta !== "elementary" && field.type.meta !== "enum") throw Error("Unsupported field!");
   const constantsPrefix = `${struct.name}_${originalName}`;
@@ -215,16 +256,19 @@ export const getSetField = (
   const maskReference = context.addConstant(omitMaskName, omitMask);
   const oldValueRemoved = `and(old, ${maskReference})`;
 
+  let fieldReference = intAllowed(field.type) ? `and(${field.name}, ${maxValueReference})` : field.name
+
   let positioned = field.name;
   if (bitsAfter > 0) {
     const bitsAfterName = `${constantsPrefix}_bitsAfter`;
     const bitsAfterReference = context.addConstant(bitsAfterName, toHex(bitsAfter));
-    positioned = `shl(${bitsAfterReference}, ${field.name})`;
+    positioned = `shl(${bitsAfterReference}, ${fieldReference})`;
   }
 
   return {
     update: `or(${oldValueRemoved}, ${positioned})`,
     position: positioned,
+    omitMaskReference: maskReference
   };
 };
 
@@ -244,6 +288,10 @@ export const getReadField = (
     const bitsAfterName = `${constantsPrefix}_bitsAfter`;
     const bitsAfterReference = context.addConstant(bitsAfterName, toHex(bitsAfter));
     rightAligned = `shr(${bitsAfterReference}, encoded)`;
+  }
+  if (field.type.meta === "elementary" && field.type.type === 'int') {
+    const bytesLess1 = (field.type.size / 8) - 1;
+    return `signextend(${toHex(bytesLess1)}, ${rightAligned})`
   }
   let masked = rightAligned;
   if (offset > 0) {

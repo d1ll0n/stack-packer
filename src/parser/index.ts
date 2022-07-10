@@ -106,7 +106,7 @@ export class ParserWrapper {
       return this.putEnum(namePath, out);
     }
     if (input.type == 'StructDefinition') {
-      console.log(input)
+      // console.log(input)
       const { name, fields: _fields, namePath, coderType, accessors, groups } = <StructType> input;
       const { fields, size, dynamic } = this.handleFields(_fields);
 
@@ -236,6 +236,17 @@ export const elementaryToTypeDef = (typeName: string): AbiElementaryType => {
       size: size ? +size : null,
       type: "uint",
     };
+  }
+  const isInt = /int(\d{0,3})/g.exec(typeName);
+  if (isInt) {
+    const size = isInt[1]
+    if (!size || +size % 8) throw Error(`Signed ints must have size that is a multiple of 8`)
+    return {
+      meta: 'elementary',
+      dynamic: false,
+      size: size ? +size : null,
+      type: "int",
+    }
   }
   const isBytes = /bytes(\d{0,2})/g.exec(typeName);
   if (isBytes) {

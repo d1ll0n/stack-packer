@@ -35,8 +35,6 @@ export type StructGroup = {
   members: AbiStructField[]
 }
 
-// type AbiParameterType = AbiStruct<T> | AbiArray<T> | AbiElementaryType | AbiEnum
-
 export type AbiFunction = {
   meta: 'function';
   name: string;
@@ -75,7 +73,7 @@ export type AbiArray = {
   size?: number;
 }
 
-export type BasicElementaryType = 'bool' | 'byte' | 'bytes' | 'uint' | 'address';
+export type BasicElementaryType = 'bool' | 'byte' | 'bytes' | 'uint' | 'address' | 'int';
 
 export type AbiElementaryType = {
   meta: 'elementary';
@@ -101,10 +99,57 @@ export type AbiType<
 
 export type ArrayJoinInput<T = string> = Array<ArrayJoinInput<T>> | Array<T> | T;
 
+export type AccessorOptions = {
+  setterName: string;
+  getterName: string;
+  generateGetter: boolean;
+  generateSetter: boolean;
+  getterCoderType?: CoderType;
+  setterCoderType?: CoderType;
+}
+
+export type ProcessedField =
+  AbiStructField & AccessorOptions & {
+    offset: number;
+    readFromWord: string;
+    positioned: string;
+    update: string;
+    parameterDefinition: string;
+    structName: string;
+    assignment: string;
+    originalName: string;
+    maxValueReference: string;
+    omitMaskReference: string;
+    getOverflowCheck: (fieldReference: string) => string
+  };
+
+export type ProcessedGroup = GroupType & AccessorOptions & {
+  fields: ProcessedField[]
+  omitMaskReference: string;
+}
+
+export type ProcessedStruct = Omit<Omit<AbiStruct, "fields">, "groups"> & AccessorOptions & {
+  fields: ProcessedField[];
+  groups: ProcessedGroup[]
+}
+
 export type SolGenState = {
   currentIndex: number;
   variableDefinitions: string[];
   struct: AbiStruct;
   codeChunks: ArrayJoinInput;
   returnLine: string;
+}
+
+export type CodeGenFunction = {
+  name: string
+  natspecLines?: string[]
+  inputs: { definition: string; name: string; type: AbiType; }[]
+  outputs: { definition: string; name: string; type: AbiType; }[]
+  visibility?: 'view' | 'pure'
+  location: 'external' | 'public' | 'internal'
+  body: ArrayJoinInput<string>
+  internalType: 'getter' | 'setter'
+  inputFields: ProcessedField[]
+  outputFields: ProcessedField[]
 }
