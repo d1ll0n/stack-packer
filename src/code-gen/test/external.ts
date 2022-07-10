@@ -19,8 +19,10 @@ function generateExternalFunction(fn: CodeGenFunction, structStorageName: string
   // let structTypeName: string;
   if (fn.internalType === 'setter') {
     copyForExternalFunction.visibility = undefined
-  } else {
+  } else if (fn.internalType === 'getter') {
     copyForExternalFunction.visibility = 'view'
+  } else {
+    return undefined;
   }
 
   const hasStructInput = fn.inputs[0]?.type.meta === 'struct';
@@ -57,6 +59,7 @@ export function generateExternalCoder(
   const externalFunctions: CodeGenFunction[] = []
   for (const fn of functions) {
     const externalFn = generateExternalFunction(fn, structStorageName, libraryName)
+    if (!externalFn) continue;
     code.push('', ...generateFunctionCode(externalFn))
     externalFunctions.push(externalFn)
   }

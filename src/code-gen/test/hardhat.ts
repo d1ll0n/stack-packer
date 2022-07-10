@@ -51,10 +51,11 @@ class HardhatTestEnvironment extends TestEnvironment {
     contactName: string,
     fn: string,
     inputs: string[],
-    outputs: string[]
+    outputs: string[],
+    forceDestructuring?: boolean
   ): ArrayJoinInput<string> {
-    const leftHandSide = outputs.length ? (outputs.length === 1 ? `const ${outputs[0]} = ` : `const { ${outputs.join(", ")} } = `): '';
-    return `${leftHandSide}await ${contactName}.${fn}(${inputs.join(", ")});`
+    const leftHandSide = outputs.length ? (outputs.length === 1 && !forceDestructuring ? `const ${outputs[0]} = ` : `const { ${outputs.join(", ")} } = `): '';
+    return [`${leftHandSide}await ${contactName}.${fn}(${inputs.join(", ")});`]
   }
 }
 

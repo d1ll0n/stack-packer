@@ -53,7 +53,8 @@ export class TestEnvironment {
     contactName: string,
     fn: string,
     inputs: string[],
-    outputs: string[]
+    outputs: string[],
+    forceDestructuring?: boolean
   ): ArrayJoinInput<string>;
 
   constructor(
@@ -118,7 +119,7 @@ export class TestEnvironment {
   
     const refObj = usableStruct || usableGroup;
     const getCallWithAssignment = this.getCallWithAssignment;
-    const _getCallWithAssignment = (_fn: string, inputs: string[], outputs: string[]) => getCallWithAssignment(contractName, _fn, inputs, outputs)
+    const _getCallWithAssignment = (_fn: string, inputs: string[], outputs: string[], forceDestructuring?: boolean) => getCallWithAssignment(contractName, _fn, inputs, outputs, forceDestructuring)
     if (!refObj) {
       // Global/group functions won't help us get/set the values we need
       // Must use field setters
@@ -136,7 +137,7 @@ export class TestEnvironment {
     }
     if (type === 'getter') {
       return () => {
-        return _getCallWithAssignment(refObj.getterName, [], fields.map(f => f.name))
+        return _getCallWithAssignment(refObj.getterName, [], fields.map(f => f.name), refObj.fields.length > 1)
         // return [`const { ${fields.map(f => f.name).join(", ")} } = await ${contractName}.${refObj.getterName}()`]
       }
     } else {

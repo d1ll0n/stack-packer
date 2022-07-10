@@ -149,7 +149,7 @@ export type CodeGenFunction = {
   visibility?: 'view' | 'pure'
   location: 'external' | 'public' | 'internal'
   body: ArrayJoinInput<string>
-  internalType: 'getter' | 'setter'
+  internalType: 'getter' | 'setter' | 'comparison'
   inputFields: ProcessedField[]
   outputFields: ProcessedField[]
 }

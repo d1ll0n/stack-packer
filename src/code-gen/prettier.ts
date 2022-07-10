@@ -17,7 +17,7 @@ const defaultOptions = {
   tabWidth: 2,
   useTabs: false,
   bracketSpacing: true,
-  ...mandatoryOptions
+  // ...mandatoryOptions
 }
 
 const tryGetPrettierOptions = () => {
@@ -26,16 +26,37 @@ const tryGetPrettierOptions = () => {
     const filePath = path.join(dir, '.prettierrc.js');
     if (fs.existsSync(filePath)) {
       const options = require(filePath);
-      return {
-        ...options,
-        ...mandatoryOptions
-      };
+      if (typeof options === 'object') {
+        return options;
+      }
+      // return {
+      //   ...options,
+      //   ...mandatoryOptions
+      // };
     }
-  } catch (err) {}
-
+  } catch (err) {
+    return {}
+  }
+  return {}
   return defaultOptions
 }
 
-const options = tryGetPrettierOptions()
-
-export const prettierFormat = (code: string) => prettier.format(code, options)
+let options = {
+  ...defaultOptions,
+  ...(tryGetPrettierOptions()),
+  ...mandatoryOptions
+};
+/* 
+const options = {
+  ...defaultOptions,
+  ...(tryGetPrettierOptions())
+}
+ */
+export const prettierFormat = (code: string) => {
+  try {
+    return prettier.format(code, options)
+  } catch {
+    options = { ...defaultOptions, ...mandatoryOptions }
+    return prettier.format(code, options)
+  }
+}

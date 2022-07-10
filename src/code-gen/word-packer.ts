@@ -8,6 +8,7 @@ import {
 	getEncodeGroupFunction,
 	getDecodeGroupFunction,
   generateFieldAccessors,
+  generateComparisonFunctions,
 } from './functions';
 import { generateNotice } from './comments';
 import { GeneratorOptions, FileContext, generateFileHeader } from './context';
@@ -47,6 +48,8 @@ export function generateCoderLibrary(struct: ProcessedStruct, context: FileConte
     context.addFunctions(generateFieldAccessors(struct, field, context),  `${field.structName}.${field.originalName} coders`)
 	}
 
+  context.addFunctions(generateComparisonFunctions(struct), `${struct.name} comparison methods`)
+
 	const typeDef = [
 		`// struct ${struct.name} {`,
 		...fields.map((field) => `//   ${toTypeName(field.type)} ${field.originalName};`),
@@ -77,9 +80,9 @@ function generateSolFile(codeLines: string[], context: FileContext, imports: str
     ...generateFileHeader(true, context.opts.unsafe, imports),
     ...codeLines,
   ])
-  /* code = prettierFormat(
+  code = prettierFormat(
     context.opts.noComments ? strip(code) : code
-  ); */
+  );
   return code;
 }
 

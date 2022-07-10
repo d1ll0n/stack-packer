@@ -1,4 +1,5 @@
 import {
+  AbiElementaryType,
   AbiError,
   AbiEvent,
   AbiFunction,
@@ -17,6 +18,7 @@ import { buildAssemblyBlock, buildFunctionBlock, buildNestedAssemblyOr } from ".
 import keccak256 from "keccak256";
 import { getGroupOmissionMask, getMaxUint, toHex } from "../lib/bytes";
 import { GroupType } from "../parser/types";
+import { convertFieldType, elementaryToTypeDef } from "../parser";
 
 const getFieldsGetter = (name: string, struct: AbiStruct, fields: ProcessedField[]): CodeGenFunction => ({
   name,
@@ -37,6 +39,61 @@ export const getDecodeGroupFunction = (struct: AbiStruct, group: ProcessedGroup)
     applyGroupAccessCoder(group, fields, 'get')
   }
   return getFieldsGetter(getterName, struct, fields)
+}
+
+export const generateIsNullFunction = (struct: AbiStruct): CodeGenFunction => {
+  const defaultName = `Default${struct.name}`;
+  const body = [
+    `_isNull = equals(a, ${defaultName});`
+  ]
+  return {
+    internalType: 'comparison',
+    name: 'isNull',
+    location: 'internal',
+    visibility: 'pure',
+    inputFields: [],
+    outputFields: [],
+    inputs: [
+      { type: struct, name: 'a', definition: `${struct.name} a`, },
+    ],
+    outputs: [{
+      type: elementaryToTypeDef('bool'),
+      name: '_isNull',
+      definition: `bool _isNull`,
+    }],
+    body
+  }
+}
+
+export const generateEqualityFunction = (struct: AbiStruct): CodeGenFunction => {
+  const body = buildAssemblyBlock([
+    `_equals := eq(a, b)`
+  ])
+  return {
+    internalType: 'comparison',
+    name: 'equals',
+    location: 'internal',
+    visibility: 'pure',
+    inputFields: [],
+    outputFields: [],
+    inputs: [
+      { type: struct, name: 'a', definition: `${struct.name} a`, },
+      { type: struct, name: 'b', definition: `${struct.name} b`, },
+    ],
+    outputs: [{
+      type: elementaryToTypeDef('bool'),
+      name: '_equals',
+      definition: `bool _equals`,
+    }],
+    body
+  }
+}
+
+export const generateComparisonFunctions = (struct: AbiStruct): CodeGenFunction[] => {
+  return [
+    generateEqualityFunction(struct),
+    generateIsNullFunction(struct)
+  ]
 }
 
 export function getEncodeGroupFunction(
