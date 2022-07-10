@@ -11,87 +11,7 @@ describe('Data3Coder.sol', () => {
 
 	describe('decode', () => {
 		it('Should be able to get min/max values', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			7
-			"
-			,
-			 
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			0
-			0
-			0
-			0
-			"
-			,
-			 
-			t
-			r
-			u
-			e
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			)
-			;
+			await externalData3.encode("0x07", "0x00", "0x7fff", "-0x80000000", true, false);
 			const { myEnum, a, b, c, d, x } = await externalData3.decode()
 			expect(myEnum).to.eq("0x07");
 			expect(a).to.eq("0x00");
@@ -102,89 +22,7 @@ describe('Data3Coder.sol', () => {
 		});
 
 		it('Should be able to get max/min values', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			,
-			 
-			t
-			r
-			u
-			e
-			)
-			;
+			await externalData3.encode("0x00", "0xffff", "-0x8000", "0x7fffffff", false, true);
 			const { myEnum, a, b, c, d, x } = await externalData3.decode()
 			expect(myEnum).to.eq("0x00");
 			expect(a).to.eq("0xffff");
@@ -234,69 +72,7 @@ describe('Data3Coder.sol', () => {
 
 		it('Should be able to set min/max values', async () => {
 			externalData3.encode("0x07", "0x00", "0x7fff", "-0x80000000", true, false)
-			c
-			o
-			n
-			s
-			t
-			 
-			{
-			 
-			m
-			y
-			E
-			n
-			u
-			m
-			,
-			 
-			a
-			,
-			 
-			b
-			,
-			 
-			c
-			,
-			 
-			d
-			,
-			 
-			x
-			 
-			}
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { myEnum, a, b, c, d, x } = await externalData3.decode();
 			expect(myEnum).to.eq("0x07");
 			expect(a).to.eq("0x00");
 			expect(b).to.eq("0x7fff");
@@ -307,69 +83,7 @@ describe('Data3Coder.sol', () => {
 
 		it('Should be able to set max/min values', async () => {
 			externalData3.encode("0x00", "0xffff", "-0x8000", "0x7fffffff", false, true)
-			c
-			o
-			n
-			s
-			t
-			 
-			{
-			 
-			m
-			y
-			E
-			n
-			u
-			m
-			,
-			 
-			a
-			,
-			 
-			b
-			,
-			 
-			c
-			,
-			 
-			d
-			,
-			 
-			x
-			 
-			}
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { myEnum, a, b, c, d, x } = await externalData3.decode();
 			expect(myEnum).to.eq("0x00");
 			expect(a).to.eq("0xffff");
 			expect(b).to.eq("-0x8000");
@@ -412,55 +126,7 @@ describe('Data3Coder.sol', () => {
 
 		it('Should be able to set min/max values', async () => {
 			externalData3.setAbc("0xffff", "-0x8000", "0x7fffffff")
-			c
-			o
-			n
-			s
-			t
-			 
-			{
-			 
-			a
-			,
-			 
-			b
-			,
-			 
-			c
-			 
-			}
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { a, b, c } = await externalData3.decode();
 			expect(a).to.eq("0xffff");
 			expect(b).to.eq("-0x8000");
 			expect(c).to.eq("0x7fffffff");
@@ -468,55 +134,7 @@ describe('Data3Coder.sol', () => {
 
 		it('Should be able to set max/min values', async () => {
 			externalData3.setAbc("0x00", "0x7fff", "-0x80000000")
-			c
-			o
-			n
-			s
-			t
-			 
-			{
-			 
-			a
-			,
-			 
-			b
-			,
-			 
-			c
-			 
-			}
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { a, b, c } = await externalData3.decode();
 			expect(a).to.eq("0x00");
 			expect(b).to.eq("0x7fff");
 			expect(c).to.eq("-0x80000000");
@@ -550,55 +168,7 @@ describe('Data3Coder.sol', () => {
 
 		it('Should be able to set min/max values', async () => {
 			externalData3.setCba(true, "-0x8000", "0x7fffffff")
-			c
-			o
-			n
-			s
-			t
-			 
-			{
-			 
-			x
-			,
-			 
-			b
-			,
-			 
-			c
-			 
-			}
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { x, b, c } = await externalData3.decode();
 			expect(x).to.eq(true);
 			expect(b).to.eq("-0x8000");
 			expect(c).to.eq("0x7fffffff");
@@ -606,55 +176,7 @@ describe('Data3Coder.sol', () => {
 
 		it('Should be able to set max/min values', async () => {
 			externalData3.setCba(false, "0x7fff", "-0x80000000")
-			c
-			o
-			n
-			s
-			t
-			 
-			{
-			 
-			x
-			,
-			 
-			b
-			,
-			 
-			c
-			 
-			}
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { x, b, c } = await externalData3.decode();
 			expect(x).to.eq(false);
 			expect(b).to.eq("0x7fff");
 			expect(c).to.eq("-0x80000000");
@@ -663,175 +185,13 @@ describe('Data3Coder.sol', () => {
 
 	describe('getMyEnum', () => {
 		it('Should be able to get min value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			7
-			"
-			,
-			 
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			0
-			0
-			0
-			0
-			"
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			)
-			;
+			await externalData3.encode("0x07", "0x00", "-0x8000", "-0x80000000", false, false);
 			const myEnum = await externalData3.getMyEnum()
 			expect(myEnum).to.eq("0x07");
 		});
 
 		it('Should be able to get max value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			t
-			r
-			u
-			e
-			,
-			 
-			t
-			r
-			u
-			e
-			)
-			;
+			await externalData3.encode("0x00", "0xffff", "0x7fff", "0x7fffffff", true, true);
 			const myEnum = await externalData3.getMyEnum()
 			expect(myEnum).to.eq("0x00");
 		});
@@ -846,274 +206,26 @@ describe('Data3Coder.sol', () => {
 
 		it('Should be able to set min value', async () => {
 			externalData3.setMyEnum("0x07")
-			c
-			o
-			n
-			s
-			t
-			 
-			m
-			y
-			E
-			n
-			u
-			m
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { myEnum } = await externalData3.decode();
 			expect(myEnum).to.eq("0x07");
 		});
 
 		it('Should be able to set max value', async () => {
 			externalData3.setMyEnum("0x00")
-			c
-			o
-			n
-			s
-			t
-			 
-			m
-			y
-			E
-			n
-			u
-			m
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { myEnum } = await externalData3.decode();
 			expect(myEnum).to.eq("0x00");
 		});
 	})
 
 	describe('getA', () => {
 		it('Should be able to get min value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			0
-			0
-			0
-			0
-			"
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			)
-			;
+			await externalData3.encode("0x00", "0xffff", "-0x8000", "-0x80000000", false, false);
 			const a = await externalData3.getA()
 			expect(a).to.eq("0xffff");
 		});
 
 		it('Should be able to get max value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			7
-			"
-			,
-			 
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			t
-			r
-			u
-			e
-			,
-			 
-			t
-			r
-			u
-			e
-			)
-			;
+			await externalData3.encode("0x07", "0x00", "0x7fff", "0x7fffffff", true, true);
 			const a = await externalData3.getA()
 			expect(a).to.eq("0x00");
 		});
@@ -1128,264 +240,26 @@ describe('Data3Coder.sol', () => {
 
 		it('Should be able to set min value', async () => {
 			externalData3.setA("0xffff")
-			c
-			o
-			n
-			s
-			t
-			 
-			a
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { a } = await externalData3.decode();
 			expect(a).to.eq("0xffff");
 		});
 
 		it('Should be able to set max value', async () => {
 			externalData3.setA("0x00")
-			c
-			o
-			n
-			s
-			t
-			 
-			a
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { a } = await externalData3.decode();
 			expect(a).to.eq("0x00");
 		});
 	})
 
 	describe('getB', () => {
 		it('Should be able to get min value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			0
-			0
-			0
-			0
-			"
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			)
-			;
+			await externalData3.encode("0x00", "0x00", "0x7fff", "-0x80000000", false, false);
 			const b = await externalData3.getB()
 			expect(b).to.eq("0x7fff");
 		});
 
 		it('Should be able to get max value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			7
-			"
-			,
-			 
-			"
-			0
-			x
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			t
-			r
-			u
-			e
-			,
-			 
-			t
-			r
-			u
-			e
-			)
-			;
+			await externalData3.encode("0x07", "0xffff", "-0x8000", "0x7fffffff", true, true);
 			const b = await externalData3.getB()
 			expect(b).to.eq("-0x8000");
 		});
@@ -1406,264 +280,26 @@ describe('Data3Coder.sol', () => {
 
 		it('Should be able to set min value', async () => {
 			externalData3.setB("0x7fff")
-			c
-			o
-			n
-			s
-			t
-			 
-			b
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { b } = await externalData3.decode();
 			expect(b).to.eq("0x7fff");
 		});
 
 		it('Should be able to set max value', async () => {
 			externalData3.setB("-0x8000")
-			c
-			o
-			n
-			s
-			t
-			 
-			b
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { b } = await externalData3.decode();
 			expect(b).to.eq("-0x8000");
 		});
 	})
 
 	describe('getC', () => {
 		it('Should be able to get min value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			)
-			;
+			await externalData3.encode("0x00", "0x00", "-0x8000", "0x7fffffff", false, false);
 			const c = await externalData3.getC()
 			expect(c).to.eq("0x7fffffff");
 		});
 
 		it('Should be able to get max value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			7
-			"
-			,
-			 
-			"
-			0
-			x
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			0
-			0
-			0
-			0
-			"
-			,
-			 
-			t
-			r
-			u
-			e
-			,
-			 
-			t
-			r
-			u
-			e
-			)
-			;
+			await externalData3.encode("0x07", "0xffff", "0x7fff", "-0x80000000", true, true);
 			const c = await externalData3.getC()
 			expect(c).to.eq("-0x80000000");
 		});
@@ -1684,264 +320,26 @@ describe('Data3Coder.sol', () => {
 
 		it('Should be able to set min value', async () => {
 			externalData3.setC("0x7fffffff")
-			c
-			o
-			n
-			s
-			t
-			 
-			c
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { c } = await externalData3.decode();
 			expect(c).to.eq("0x7fffffff");
 		});
 
 		it('Should be able to set max value', async () => {
 			externalData3.setC("-0x80000000")
-			c
-			o
-			n
-			s
-			t
-			 
-			c
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { c } = await externalData3.decode();
 			expect(c).to.eq("-0x80000000");
 		});
 	})
 
 	describe('getD', () => {
 		it('Should be able to get min value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			0
-			0
-			0
-			0
-			"
-			,
-			 
-			t
-			r
-			u
-			e
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			)
-			;
+			await externalData3.encode("0x00", "0x00", "-0x8000", "-0x80000000", true, false);
 			const d = await externalData3.getD()
 			expect(d).to.eq(true);
 		});
 
 		it('Should be able to get max value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			7
-			"
-			,
-			 
-			"
-			0
-			x
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			,
-			 
-			t
-			r
-			u
-			e
-			)
-			;
+			await externalData3.encode("0x07", "0xffff", "0x7fff", "0x7fffffff", false, true);
 			const d = await externalData3.getD()
 			expect(d).to.eq(false);
 		});
@@ -1950,264 +348,26 @@ describe('Data3Coder.sol', () => {
 	describe('setD', () => {
 		it('Should be able to set min value', async () => {
 			externalData3.setD(true)
-			c
-			o
-			n
-			s
-			t
-			 
-			d
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { d } = await externalData3.decode();
 			expect(d).to.eq(true);
 		});
 
 		it('Should be able to set max value', async () => {
 			externalData3.setD(false)
-			c
-			o
-			n
-			s
-			t
-			 
-			d
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { d } = await externalData3.decode();
 			expect(d).to.eq(false);
 		});
 	})
 
 	describe('getX', () => {
 		it('Should be able to get min value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			0
-			x
-			0
-			0
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			"
-			,
-			 
-			"
-			-
-			0
-			x
-			8
-			0
-			0
-			0
-			0
-			0
-			0
-			0
-			"
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			,
-			 
-			t
-			r
-			u
-			e
-			)
-			;
+			await externalData3.encode("0x00", "0x00", "-0x8000", "-0x80000000", false, true);
 			const x = await externalData3.getX()
 			expect(x).to.eq(true);
 		});
 
 		it('Should be able to get max value', async () => {
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			e
-			n
-			c
-			o
-			d
-			e
-			(
-			"
-			0
-			x
-			0
-			7
-			"
-			,
-			 
-			"
-			0
-			x
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			"
-			,
-			 
-			"
-			0
-			x
-			7
-			f
-			f
-			f
-			f
-			f
-			f
-			f
-			"
-			,
-			 
-			t
-			r
-			u
-			e
-			,
-			 
-			f
-			a
-			l
-			s
-			e
-			)
-			;
+			await externalData3.encode("0x07", "0xffff", "0x7fff", "0x7fffffff", true, false);
 			const x = await externalData3.getX()
 			expect(x).to.eq(false);
 		});
@@ -2216,89 +376,13 @@ describe('Data3Coder.sol', () => {
 	describe('setX', () => {
 		it('Should be able to set min value', async () => {
 			externalData3.setX(true)
-			c
-			o
-			n
-			s
-			t
-			 
-			x
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { x } = await externalData3.decode();
 			expect(x).to.eq(true);
 		});
 
 		it('Should be able to set max value', async () => {
 			externalData3.setX(false)
-			c
-			o
-			n
-			s
-			t
-			 
-			x
-			 
-			=
-			 
-			a
-			w
-			a
-			i
-			t
-			 
-			e
-			x
-			t
-			e
-			r
-			n
-			a
-			l
-			D
-			a
-			t
-			a
-			3
-			.
-			d
-			e
-			c
-			o
-			d
-			e
-			(
-			)
-			;
+			const { x } = await externalData3.decode();
 			expect(x).to.eq(false);
 		});
 	})
