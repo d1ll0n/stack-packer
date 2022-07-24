@@ -145,7 +145,7 @@ export function generateFoundryTestForFunction(
     }
     const getGetter = _env.findGetterOrSetterForFields(struct, fields, fn, contractName, 'getter');
     if (!getGetter) {
-      console.log(`Could not find way to get all fields updated by ${fn.name}`)
+      console.log(`Could not find a way to get all fields updated by ${fn.name}`)
       return undefined;
     }
     const getterCode = getGetter();
@@ -166,7 +166,6 @@ export function generateFoundryTestForFunction(
     )
     testCode.push(testSetMaxMin, '')
   } else {
-    console.log(`Entering getter test generator`)
     const destructuredDecodeParams = fn.outputFields.length > 1
       ? `{ ${fn.outputFields.map(f => f.name).join(", ")} }`
       : `${fn.outputFields[0].name}`
