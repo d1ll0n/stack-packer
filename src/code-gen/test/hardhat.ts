@@ -167,7 +167,6 @@ export function generateHardhatTestForFunction(
     )
     testCode.push(testSetMaxMin, '')
   } else {
-    console.log(`Entering getter test generator`)
     const destructuredDecodeParams = fn.outputFields.length > 1
       ? `{ ${fn.outputFields.map(f => f.name).join(", ")} }`
       : `${fn.outputFields[0].name}`
