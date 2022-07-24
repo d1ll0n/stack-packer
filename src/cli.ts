@@ -49,7 +49,7 @@ const getPaths = (argv: { output: string; input: string; constantsFile: any; tes
     constantsFilePath,
     testContractsDirectory,
     hardhatTestsDirectory,
-    projectType: hardhatProjectInfo.projectType,
+    projectType: hardhatProjectInfo?.projectType,
   }
 }
 
