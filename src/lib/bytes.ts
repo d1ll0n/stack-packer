@@ -15,7 +15,7 @@ export const BI_ONE = BigInt(1);
 export const BI_TWO = BigInt(2);
 const maxUint = (bits: number) => BI_TWO ** BigInt(bits) - BI_ONE
 
-export const getMaxUint = (bits: number) => `0x${padEvenBytes(maxUint(bits).toString(16))}`
+export const getMaxUint = (bits: number) => `0x${maxUint(bits).toString(16).padStart(64, '0')}`
 
 const getOmitMask = (offset: number, size: number) => {
   const bitsAfterStart = 256 - offset;
