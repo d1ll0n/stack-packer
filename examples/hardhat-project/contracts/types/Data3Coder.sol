@@ -75,6 +75,7 @@ library Data3Coder {
     bool x
   ) internal pure returns (Data3 encoded) {
     assembly {
+      // Revert if `myEnum`, `a`, `b` or `c` overflow
       if or(
         gt(myEnum, MaxUint3),
         or(
@@ -128,6 +129,7 @@ library Data3Coder {
     int256 c
   ) internal pure returns (Data3 updated) {
     assembly {
+      // Revert if `a`, `b` or `c` overflow
       if or(
         gt(a, MaxUint16),
         or(
@@ -172,6 +174,7 @@ library Data3Coder {
     int256 c
   ) internal pure returns (Data3 updated) {
     assembly {
+      // Revert if `b` or `c` overflow
       if or(
         xor(b, signextend(1, b)),
         xor(c, signextend(3, c))
@@ -225,6 +228,7 @@ library Data3Coder {
     returns (Data3 updated)
   {
     assembly {
+      // Revert if `myEnum` overflows
       if gt(myEnum, MaxUint3) {
         mstore(0, Panic_error_signature)
         mstore(
@@ -263,6 +267,7 @@ library Data3Coder {
     returns (Data3 updated)
   {
     assembly {
+      // Revert if `a` overflows
       if gt(a, MaxUint16) {
         mstore(0, Panic_error_signature)
         mstore(
@@ -301,6 +306,7 @@ library Data3Coder {
     returns (Data3 updated)
   {
     assembly {
+      // Revert if `b` overflows
       if xor(b, signextend(1, b)) {
         mstore(0, Panic_error_signature)
         mstore(
@@ -339,6 +345,7 @@ library Data3Coder {
     returns (Data3 updated)
   {
     assembly {
+      // Revert if `c` overflows
       if xor(c, signextend(3, c)) {
         mstore(0, Panic_error_signature)
         mstore(

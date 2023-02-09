@@ -31,6 +31,7 @@ library Data1Coder {
     bool d
   ) internal pure returns (Data1 encoded) {
     assembly {
+      // Revert if `a`, `b` or `c` overflow
       if or(
         gt(a, MaxUint16),
         or(
@@ -75,6 +76,7 @@ library Data1Coder {
     int256 c
   ) internal pure returns (Data1 updated) {
     assembly {
+      // Revert if `a`, `b` or `c` overflow
       if or(
         gt(a, MaxUint16),
         or(
@@ -119,6 +121,7 @@ library Data1Coder {
     uint256 a
   ) internal pure returns (Data1 updated) {
     assembly {
+      // Revert if `c`, `b` or `a` overflow
       if or(
         xor(c, signextend(3, c)),
         or(
@@ -172,6 +175,7 @@ library Data1Coder {
     returns (Data1 updated)
   {
     assembly {
+      // Revert if `a` overflows
       if gt(a, MaxUint16) {
         mstore(0, Panic_error_signature)
         mstore(
@@ -210,6 +214,7 @@ library Data1Coder {
     returns (Data1 updated)
   {
     assembly {
+      // Revert if `b` overflows
       if xor(b, signextend(1, b)) {
         mstore(0, Panic_error_signature)
         mstore(
@@ -248,6 +253,7 @@ library Data1Coder {
     returns (Data1 updated)
   {
     assembly {
+      // Revert if `c` overflows
       if xor(c, signextend(3, c)) {
         mstore(0, Panic_error_signature)
         mstore(
