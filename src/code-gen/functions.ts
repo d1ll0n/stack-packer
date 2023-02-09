@@ -220,7 +220,19 @@ export function getOverflowCheck(originalFields: ProcessedField[], context: File
   prefixFirstString(overflowCondition, 'if ');
   suffixLastString(overflowCondition, ' {');
   overflowCondition.push(overflowRevert(overflowConstantReferences));
-  overflowCondition.push('}')
+  overflowCondition.push("}");
+  if (!context.opts.noComments) {
+    const namesComment = fields.length === 1
+        ? `\`${fields[0].name}\` overflows`
+        : [
+            ...fields
+              .slice(0, -1)
+              .map(({ name }) => `\`${name}\``)
+              .join(", "),
+            ` or \`${fields[fields.length - 1].name}\` overflow`,
+          ].join("");
+    overflowCondition.unshift(`// Revert if ${namesComment}`);
+  }
   return overflowCondition
 }
 
