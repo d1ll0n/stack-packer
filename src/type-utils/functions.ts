@@ -13,4 +13,4 @@ export const getSelector = (fn: AbiFunction) => {
   const sig = getSignature(fn);
   console.log(sig);
   return `0x${keccak256(sig).subarray(0, 4).toString("hex")}`;
-}
+};
