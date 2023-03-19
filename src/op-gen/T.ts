@@ -1,0 +1,72 @@
+export const ArithmeticOpNames = [
+  "add",
+  "sub",
+  "mul",
+  "div",
+  "sdiv",
+  "mod",
+  "smod",
+  "exp",
+  "not",
+  "lt",
+  "gt",
+  "slt",
+  "sgt",
+  "eq",
+  "iszero",
+  "and",
+  "or",
+  "xor",
+  "byte",
+  "shl",
+  "shr",
+  "sar",
+  "addmod",
+  "mulmod",
+  "signextend",
+] as const;
+export const UnaryOpNames = [
+  "calldataload",
+  "iszero",
+  "mload",
+  "not",
+  "sload",
+] as const;
+export type UnaryOp = typeof UnaryOpNames[number];
+export const BinaryOpNames = [
+  "add",
+  "and",
+  "byte",
+  "div",
+  "eq",
+  "exp",
+  "gt",
+  "keccak256",
+  "lt",
+  "mod",
+  "mstore",
+  "mstore8",
+  "mul",
+  "or",
+  "sar",
+  "sdiv",
+  "sgt",
+  "shl",
+  "shr",
+  "signextend",
+  "slt",
+  "smod",
+  "sstore",
+  "sub",
+  "xor",
+] as const;
+export type BinaryOp = typeof BinaryOpNames[number];
+export const TernaryOpNames = [
+  "addmod",
+  "calldatacopy",
+  "mulmod",
+  "returndatacopy",
+] as const;
+export type TernaryOp = typeof TernaryOpNames[number];
+
+const x = { a: 5 };

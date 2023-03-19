@@ -1,0 +1,778 @@
+[
+  {
+    "name": "data",
+    "ops": [
+      {
+        "name": "calldataload",
+        "parameters": [
+          "ptr"
+        ],
+        "comment": " call data starting from position p (32 bytes)"
+      },
+      {
+        "name": "calldatasize",
+        "parameters": [],
+        "comment": " size of call data in bytes"
+      },
+      {
+        "name": "calldatacopy",
+        "parameters": [
+          "dst",
+          "src",
+          "size"
+        ],
+        "comment": " copy s bytes from calldata at position f to mem at position t"
+      },
+      {
+        "name": "returndatasize",
+        "parameters": [],
+        "comment": " size of the last returndata"
+      },
+      {
+        "name": "returndatacopy",
+        "parameters": [
+          "dst",
+          "src",
+          "size"
+        ],
+        "comment": " copy s bytes from returndata at position f to mem at position t"
+      },
+      {
+        "name": "mload",
+        "parameters": [
+          "ptr"
+        ],
+        "comment": " mem[p...(p+32))"
+      },
+      {
+        "name": "mstore",
+        "parameters": [
+          "ptr",
+          "value"
+        ],
+        "comment": " mem[p...(p+32)) := v"
+      },
+      {
+        "name": "mstore8",
+        "parameters": [
+          "ptr",
+          "value"
+        ],
+        "comment": " mem[p] := v & 0xff (only modifies a single byte)"
+      },
+      {
+        "name": "sload",
+        "parameters": [
+          "ptr"
+        ],
+        "comment": " storage[p]"
+      },
+      {
+        "name": "sstore",
+        "parameters": [
+          "ptr",
+          "value"
+        ],
+        "comment": " storage[p] := v"
+      }
+    ]
+  },
+  {
+    "name": "arithmetic",
+    "ops": [
+      {
+        "name": "add",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " x + y"
+      },
+      {
+        "name": "mul",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " x * y"
+      },
+      {
+        "name": "sub",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " x - y"
+      },
+      {
+        "name": "div",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " x / y or 0 if y == 0"
+      },
+      {
+        "name": "sdiv",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " x / y, for signed numbers in two's complement, 0 if y == 0"
+      },
+      {
+        "name": "mod",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " x % y, 0 if y == 0"
+      },
+      {
+        "name": "smod",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " x % y, for signed numbers in two's complement, 0 if y == 0"
+      },
+      {
+        "name": "addmod",
+        "parameters": [
+          "x",
+          "y",
+          "m"
+        ],
+        "comment": " (x + y) % m with arbitrary precision arithmetic, 0 if m == 0"
+      },
+      {
+        "name": "mulmod",
+        "parameters": [
+          "x",
+          "y",
+          "m"
+        ],
+        "comment": " (x * y) % m with arbitrary precision arithmetic, 0 if m == 0"
+      },
+      {
+        "name": "exp",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " x to the power of y"
+      },
+      {
+        "name": "signextend",
+        "parameters": [
+          "i",
+          "x"
+        ],
+        "comment": " sign extend from (i*8+7)th bit counting from least significant"
+      },
+      {
+        "name": "lt",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " 1 if x < y, 0 otherwise"
+      },
+      {
+        "name": "gt",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " 1 if x > y, 0 otherwise"
+      },
+      {
+        "name": "slt",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " 1 if x < y, 0 otherwise, for signed numbers in two's complement"
+      },
+      {
+        "name": "sgt",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " 1 if x > y, 0 otherwise, for signed numbers in two's complement"
+      },
+      {
+        "name": "eq",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " 1 if x == y, 0 otherwise"
+      },
+      {
+        "name": "iszero",
+        "parameters": [
+          "x"
+        ],
+        "comment": " 1 if x == 0, 0 otherwise"
+      },
+      {
+        "name": "and",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " bitwise \"and\" of x and y"
+      },
+      {
+        "name": "or",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " bitwise \"or\" of x and y"
+      },
+      {
+        "name": "xor",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " bitwise \"xor\" of x and y"
+      },
+      {
+        "name": "not",
+        "parameters": [
+          "x"
+        ],
+        "comment": " bitwise \"not\" of x (every bit of x is negated)"
+      },
+      {
+        "name": "byte",
+        "parameters": [
+          "index",
+          "x"
+        ],
+        "comment": " nth byte of x, where the most significant byte is the 0th byte"
+      },
+      {
+        "name": "shl",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " logical shift left y by x bits"
+      },
+      {
+        "name": "shr",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " logical shift right y by x bits"
+      },
+      {
+        "name": "sar",
+        "parameters": [
+          "x",
+          "y"
+        ],
+        "comment": " signed arithmetic shift right y by x bits"
+      }
+    ]
+  },
+  {
+    "name": "compute",
+    "ops": [
+      {
+        "name": "keccak256",
+        "parameters": [
+          "ptr",
+          "size"
+        ],
+        "comment": " keccak(mem[p...(p+n)))"
+      }
+    ]
+  },
+  {
+    "name": "env",
+    "ops": [
+      {
+        "name": "address",
+        "parameters": [],
+        "comment": " address of the current contract / execution context"
+      },
+      {
+        "name": "selfbalance",
+        "parameters": [],
+        "comment": " equivalent to balance(address()), but cheaper"
+      },
+      {
+        "name": "caller",
+        "parameters": [],
+        "comment": " call sender (excluding ``delegatecall``)"
+      },
+      {
+        "name": "callvalue",
+        "parameters": [],
+        "comment": " wei sent together with the current call"
+      },
+      {
+        "name": "calldataload",
+        "parameters": [
+          "ptr"
+        ],
+        "comment": " call data starting from position p (32 bytes)"
+      },
+      {
+        "name": "calldatasize",
+        "parameters": [],
+        "comment": " size of call data in bytes"
+      },
+      {
+        "name": "calldatacopy",
+        "parameters": [
+          "dst",
+          "src",
+          "size"
+        ],
+        "comment": " copy s bytes from calldata at position f to mem at position t"
+      },
+      {
+        "name": "codesize",
+        "parameters": [],
+        "comment": " size of the code of the current contract / execution context"
+      },
+      {
+        "name": "codecopy",
+        "parameters": [
+          "dst",
+          "src",
+          "size"
+        ],
+        "comment": " copy s bytes from code at position f to mem at position t"
+      },
+      {
+        "name": "returndatasize",
+        "parameters": [],
+        "comment": " size of the last returndata"
+      },
+      {
+        "name": "returndatacopy",
+        "parameters": [
+          "dst",
+          "src",
+          "size"
+        ],
+        "comment": " copy s bytes from returndata at position f to mem at position t"
+      }
+    ]
+  },
+  {
+    "name": "calldata",
+    "ops": [
+      {
+        "name": "calldataload",
+        "parameters": [
+          "ptr"
+        ],
+        "comment": " call data starting from position p (32 bytes)"
+      },
+      {
+        "name": "calldatasize",
+        "parameters": [],
+        "comment": " size of call data in bytes"
+      },
+      {
+        "name": "calldatacopy",
+        "parameters": [
+          "dst",
+          "src",
+          "size"
+        ],
+        "comment": " copy s bytes from calldata at position f to mem at position t"
+      }
+    ]
+  },
+  {
+    "name": "tx",
+    "ops": [
+      {
+        "name": "gasprice",
+        "parameters": [],
+        "comment": " gas price of the transaction"
+      },
+      {
+        "name": "origin",
+        "parameters": [],
+        "comment": " transaction sender"
+      }
+    ]
+  },
+  {
+    "name": "account",
+    "ops": [
+      {
+        "name": "balance",
+        "parameters": [
+          "address"
+        ],
+        "comment": " wei balance at address a"
+      },
+      {
+        "name": "extcodesize",
+        "parameters": [
+          "address"
+        ],
+        "comment": " size of the code at address a"
+      },
+      {
+        "name": "extcodecopy",
+        "parameters": [
+          "address",
+          "dst",
+          "src",
+          "size"
+        ],
+        "comment": " like codecopy(t, f, s) but take code at address a"
+      },
+      {
+        "name": "extcodehash",
+        "parameters": [
+          "address"
+        ],
+        "comment": " code hash of address a"
+      },
+      {
+        "name": "call",
+        "parameters": [
+          "gas",
+          "address",
+          "value",
+          "inPtr",
+          "inSize",
+          "outPtr",
+          "outSize"
+        ],
+        "comment": " call contract at address a with input mem[in...(in+insize)) providing g gas and v wei and output area mem[out...(out+outsize)) returning 0 on error (eg. out of gas) and 1 on success :ref:`See more <yul-call-return-area>`"
+      },
+      {
+        "name": "callcode",
+        "parameters": [
+          "gas",
+          "address",
+          "value",
+          "inPtr",
+          "inSize",
+          "outPtr",
+          "outSize"
+        ],
+        "comment": " identical to ``call`` but only use the code from a and stay in the context of the current contract otherwise :ref:`See more <yul-call-return-area>`"
+      },
+      {
+        "name": "delegatecall",
+        "parameters": [
+          "gas",
+          "address",
+          "inPtr",
+          "inSize",
+          "outPtr",
+          "outSize"
+        ],
+        "comment": " identical to ``callcode`` but also keep ``caller`` and ``callvalue`` :ref:`See more <yul-call-return-area>`"
+      },
+      {
+        "name": "staticcall",
+        "parameters": [
+          "gas",
+          "address",
+          "inPtr",
+          "inSize",
+          "outPtr",
+          "outSize"
+        ],
+        "comment": " identical to ``call(g, a, 0, in, insize, out, outsize)`` but do not allow state modifications :ref:`See more <yul-call-return-area>`"
+      }
+    ]
+  },
+  {
+    "name": "block",
+    "ops": [
+      {
+        "name": "blockhash",
+        "parameters": [
+          "b"
+        ],
+        "comment": " hash of block nr b - only for last 256 blocks excluding current"
+      },
+      {
+        "name": "coinbase",
+        "parameters": [],
+        "comment": " current mining beneficiary"
+      },
+      {
+        "name": "timestamp",
+        "parameters": [],
+        "comment": " timestamp of the current block in seconds since the epoch"
+      },
+      {
+        "name": "number",
+        "parameters": [],
+        "comment": " current block number"
+      },
+      {
+        "name": "difficulty",
+        "parameters": [],
+        "comment": " difficulty of the current block"
+      },
+      {
+        "name": "gaslimit",
+        "parameters": [],
+        "comment": " block gas limit of the current block"
+      },
+      {
+        "name": "chainid",
+        "parameters": [],
+        "comment": " ID of the executing chain (EIP-1344)"
+      },
+      {
+        "name": "basefee",
+        "parameters": [],
+        "comment": " current block's base fee (EIP-3198 and EIP-1559)"
+      }
+    ]
+  },
+  {
+    "name": "machine",
+    "ops": [
+      {
+        "name": "pop",
+        "parameters": [
+          "x"
+        ],
+        "comment": " discard value x"
+      },
+      {
+        "name": "mload",
+        "parameters": [
+          "ptr"
+        ],
+        "comment": " mem[p...(p+32))"
+      },
+      {
+        "name": "mstore",
+        "parameters": [
+          "ptr",
+          "value"
+        ],
+        "comment": " mem[p...(p+32)) := v"
+      },
+      {
+        "name": "mstore8",
+        "parameters": [
+          "ptr",
+          "value"
+        ],
+        "comment": " mem[p] := v & 0xff (only modifies a single byte)"
+      },
+      {
+        "name": "sload",
+        "parameters": [
+          "ptr"
+        ],
+        "comment": " storage[p]"
+      },
+      {
+        "name": "sstore",
+        "parameters": [
+          "ptr",
+          "value"
+        ],
+        "comment": " storage[p] := v"
+      },
+      {
+        "name": "pc",
+        "parameters": [],
+        "comment": " current position in code"
+      },
+      {
+        "name": "msize",
+        "parameters": [],
+        "comment": " size of memory, i.e. largest accessed memory index"
+      },
+      {
+        "name": "gas",
+        "parameters": [],
+        "comment": " gas still available to execution"
+      }
+    ]
+  },
+  {
+    "name": "log",
+    "ops": [
+      {
+        "name": "log0",
+        "parameters": [
+          "ptr",
+          "size"
+        ],
+        "comment": " log without topics and data mem[p...(p+s))"
+      },
+      {
+        "name": "log1",
+        "parameters": [
+          "ptr",
+          "size",
+          "topic1"
+        ],
+        "comment": " log with topic t1 and data mem[p...(p+s))"
+      },
+      {
+        "name": "log2",
+        "parameters": [
+          "ptr",
+          "size",
+          "topic1",
+          "topic2"
+        ],
+        "comment": " log with topics t1, t2 and data mem[p...(p+s))"
+      },
+      {
+        "name": "log3",
+        "parameters": [
+          "ptr",
+          "size",
+          "topic1",
+          "topic2",
+          "topic3"
+        ],
+        "comment": " log with topics t1, t2, t3 and data mem[p...(p+s))"
+      },
+      {
+        "name": "log4",
+        "parameters": [
+          "ptr",
+          "size",
+          "topic1",
+          "topic2",
+          "topic3",
+          "topic4"
+        ],
+        "comment": " log with topics t1, t2, t3, t4 and data mem[p...(p+s))"
+      }
+    ]
+  },
+  {
+    "name": "call",
+    "ops": [
+      {
+        "name": "create",
+        "parameters": [
+          "value",
+          "ptr",
+          "size"
+        ],
+        "comment": " create new contract with code mem[p...(p+n)) and send v wei and return the new address; returns 0 on error"
+      },
+      {
+        "name": "create2",
+        "parameters": [
+          "value",
+          "ptr",
+          "size",
+          "salt"
+        ],
+        "comment": " create new contract with code mem[p...(p+n)) at address keccak256(0xff . this . s . keccak256(mem[p...(p+n))) and send v wei and return the new address, where ``0xff`` is a 1 byte value, ``this`` is the current contract's address as a 20 byte value and ``s`` is a big-endian 256-bit value; returns 0 on error"
+      },
+      {
+        "name": "call",
+        "parameters": [
+          "gas",
+          "address",
+          "value",
+          "inPtr",
+          "inSize",
+          "outPtr",
+          "outSize"
+        ],
+        "comment": " call contract at address a with input mem[in...(in+insize)) providing g gas and v wei and output area mem[out...(out+outsize)) returning 0 on error (eg. out of gas) and 1 on success :ref:`See more <yul-call-return-area>`"
+      },
+      {
+        "name": "callcode",
+        "parameters": [
+          "gas",
+          "address",
+          "value",
+          "inPtr",
+          "inSize",
+          "outPtr",
+          "outSize"
+        ],
+        "comment": " identical to ``call`` but only use the code from a and stay in the context of the current contract otherwise :ref:`See more <yul-call-return-area>`"
+      },
+      {
+        "name": "delegatecall",
+        "parameters": [
+          "gas",
+          "address",
+          "inPtr",
+          "inSize",
+          "outPtr",
+          "outSize"
+        ],
+        "comment": " identical to ``callcode`` but also keep ``caller`` and ``callvalue`` :ref:`See more <yul-call-return-area>`"
+      },
+      {
+        "name": "staticcall",
+        "parameters": [
+          "gas",
+          "address",
+          "inPtr",
+          "inSize",
+          "outPtr",
+          "outSize"
+        ],
+        "comment": " identical to ``call(g, a, 0, in, insize, out, outsize)`` but do not allow state modifications :ref:`See more <yul-call-return-area>`"
+      }
+    ]
+  },
+  {
+    "name": "halt",
+    "ops": [
+      {
+        "name": "return",
+        "parameters": [
+          "ptr",
+          "size"
+        ],
+        "comment": " end execution, return data mem[p...(p+s))"
+      },
+      {
+        "name": "stop",
+        "parameters": [],
+        "comment": " stop execution, identical to return(0, 0)"
+      },
+      {
+        "name": "revert",
+        "parameters": [
+          "ptr",
+          "size"
+        ],
+        "comment": " end execution, revert state changes, return data mem[p...(p+s))"
+      },
+      {
+        "name": "invalid",
+        "parameters": [],
+        "comment": " end execution with invalid instruction"
+      },
+      {
+        "name": "selfdestruct",
+        "parameters": [
+          "address"
+        ],
+        "comment": " end execution, destroy current contract and send funds to a"
+      }
+    ]
+  }
+]
