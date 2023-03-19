@@ -1,5 +1,5 @@
-import { FileContext } from "../../code-gen/context";
 import { ArrayJoinInput } from "../../types";
+import { FileContext } from "../../code-gen/context";
 import { getReadSelectorExpression } from "../selectors";
 import { SelectorType } from "../types";
 
@@ -35,10 +35,12 @@ export const getMagicModulusFunction = (
     selectorType
   );
 
-  console.log(`SELECTOR BITS ${selectorType.bits}`)
+  console.log(`SELECTOR BITS ${selectorType.bits}`);
+  const name =
+    selectorType.type === "magic" ? "magicSelector" : "indexedSelector";
 
   return [
-    `function magicSelector() pure returns (uint256 selector) {`,
+    `function ${name}() pure returns (uint256 selector) {`,
     [`assembly {`, [`selector := ${readSelectorExpression}`], `}`],
     `}`,
   ];

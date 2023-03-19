@@ -1,5 +1,5 @@
-import { generateFunctionCode } from "../code-gen/codegen-helpers";
 import path from "path";
+import { generateFunctionCode } from "../code-gen/codegen-helpers";
 
 import { getFallbackForJumpTable } from "./templates/external-jump-table";
 import { getMagicModulusFunction } from "./templates/modulus";
@@ -236,7 +236,8 @@ export function generateJumpTableForFunctions(
     segments.map((s) => s.definition)
   );
 
-  const giveMembersAsParams = withLibrary && selectorType.type === "index";
+  // @todo is there ever a scenario where they are given as params?
+  const giveMembersAsParams = false; // withLibrary && selectorType.type === "index";
   const segmentAssignments: ArrayJoinInput[] = segments.map((segment) =>
     wrap(
       addSeparators(
