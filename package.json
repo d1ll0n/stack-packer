@@ -12,7 +12,9 @@
     "test": "yarn mocha:ts ./test/test.ts",
     "build": "tsc",
     "prepublishOnly": "yarn build",
-    "dot": "ts-node src/cli ExchangeConfig.sol"
+    "dot": "ts-node src/cli ExchangeConfig.sol",
+    "lint:fix:eslint": "eslint --fix ./src/templates/e/Copiers.ts",
+    "lint:check": "eslint --fix ./src/templates/d/Copiers.ts"
   },
   "keywords": [],
   "author": "",
@@ -23,26 +25,59 @@
   },
   "dependencies": {
     "@d1ll0n/solidity-parser": "^0.0.3",
+    "@ethersproject/abi": "^5.7.0",
     "@types/antlr4": "^4.7.2",
     "@types/lodash": "^4.14.182",
     "@types/yargs": "^17.0.10",
     "antlr4": "^4.10.1",
     "antlr4ts": "^0.5.0-alpha.4",
+    "handlebars": "^4.7.7",
     "keccak256": "^1.0.6",
     "lodash": "^4.17.21",
+    "mathjs": "^11.3.2",
     "number-to-words": "^1.2.4",
     "prettier": "^2.7.1",
-    "prettier-plugin-solidity": "^1.0.0-beta.19",
+    "prettier-plugin-solidity": "^1.0.0-beta.24",
+    "solc-typed-ast": "^10.3.0",
+    "xregexp": "^5.1.1",
     "yargs": "^15.3.1"
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",
     "@types/mocha": "^7.0.2",
     "@types/node": "^18.0.2",
+    "@typescript-eslint/eslint-plugin": "^5.9.1",
+    "@typescript-eslint/parser": "^5.9.1",
     "chai": "^4.2.0",
+    "eslint": "^8.6.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-n": "^15.2.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-promise": "^6.0.0",
+    "eslint-plugin-sort-imports-es6-autofix": "^0.6.0",
     "mocha": "^7.1.1",
     "rimraf": "^3.0.2",
     "ts-node": "^10.8.2",
     "typescript": "^4.7.4"
+  },
+  "importSort": {
+    ".ts": {
+      "parser": "typescript",
+      "style": "eslint",
+      "options": {
+        "ignoreCase": true,
+        "ignoreDeclarationSort": false,
+        "ignoreMemberSort": false,
+        "memberSyntaxSortOrder": [
+          "none",
+          "all",
+          "single",
+          "multiple"
+        ],
+        "allowSeparatedGroups": true
+      }
+    }
   }
 }
