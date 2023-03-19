@@ -1,32 +1,32 @@
-import fs from 'fs';
-import path from 'path';
-import * as prettier from 'prettier'
-import 'prettier-plugin-solidity'
+import fs from "fs";
+import path from "path";
+import * as prettier from "prettier";
+import "prettier-plugin-solidity";
 
 const mandatoryOptions = {
-  plugins: ['prettier-plugin-solidity'],
+  plugins: ["prettier-plugin-solidity"],
   // Tells prettier to use the solidity plugin
   filepath: "filepath.sol",
-}
+};
 
 const defaultOptions = {
   semi: true,
-  trailingComma: 'all',
+  trailingComma: "all",
   singleQuote: true,
-  printWidth: 50,
+  printWidth: 70,
   tabWidth: 2,
   useTabs: false,
   bracketSpacing: true,
   // ...mandatoryOptions
-}
+};
 
 const tryGetPrettierOptions = () => {
   try {
     const dir = process.cwd();
-    const filePath = path.join(dir, '.prettierrc.js');
+    const filePath = path.join(dir, ".prettierrc.js");
     if (fs.existsSync(filePath)) {
       const options = require(filePath);
-      if (typeof options === 'object') {
+      if (typeof options === "object") {
         return options;
       }
       // return {
@@ -35,16 +35,16 @@ const tryGetPrettierOptions = () => {
       // };
     }
   } catch (err) {
-    return {}
+    return {};
   }
-  return {}
-  return defaultOptions
-}
+  return {};
+  // return defaultOptions;
+};
 
 let options = {
   ...defaultOptions,
-  ...(tryGetPrettierOptions()),
-  ...mandatoryOptions
+  ...tryGetPrettierOptions(),
+  ...mandatoryOptions,
 };
 /* 
 const options = {
@@ -54,9 +54,9 @@ const options = {
  */
 export const prettierFormat = (code: string) => {
   try {
-    return prettier.format(code, options)
+    return prettier.format(code, options);
   } catch {
-    options = { ...defaultOptions, ...mandatoryOptions }
-    return prettier.format(code, options)
+    options = { ...defaultOptions, ...mandatoryOptions };
+    return prettier.format(code, options);
   }
-}
+};
