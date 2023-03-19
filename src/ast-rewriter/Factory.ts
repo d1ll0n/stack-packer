@@ -1,18 +1,18 @@
 import "../lib/String";
-import { utf8ToHex } from "../lib/bytes";
-import { YulNodeFactory } from "./yul";
 import {
+  ASTNode,
   ASTNodeFactory,
   Block,
+  ContractDefinition,
   DataLocation,
   ElementaryTypeName,
   Expression,
+  FunctionDefinition,
   FunctionKind,
   FunctionStateMutability,
   FunctionVisibility,
   IndexAccess,
   InferType,
-  isReferenceType,
   LatestCompilerVersion,
   Literal,
   LiteralKind,
@@ -20,17 +20,111 @@ import {
   Mutability,
   OverrideSpecifier,
   ParameterList,
+  SourceUnit,
   StateVariableVisibility,
   StructuredDocumentation,
+  SymbolAlias,
   TypeName,
+  UserDefinition,
   VariableDeclaration,
 } from "solc-typed-ast";
-import { parseTypeName } from "./parse";
+import {
+  findConstantDeclaration,
+  getParentSourceUnit,
+  symbolAliasToId,
+} from "./utils";
+import { getDir, getRelativePath } from "../project";
+import { last } from "lodash";
+import { NodeQ } from "./NodeQ";
+import { parseTypeName } from "./AbiTypeParser";
+import { utf8ToHex } from "../lib/bytes";
+import { YulNodeFactory } from "./yul";
 
 export const DefaultInfer = new InferType(LatestCompilerVersion);
 
 export class Factory extends ASTNodeFactory {
   yul: YulNodeFactory = new YulNodeFactory();
+
+  /**
+   * Add imports for `symbolAliases` in `importSource` to `sourceUnit`
+   * if they are not already imported.
+   */
+  addImports(
+    sourceUnit: SourceUnit,
+    importSource: SourceUnit,
+    symbolAliases: SymbolAlias[]
+  ) {
+    const { vImportDirectives } = sourceUnit;
+    const directive = vImportDirectives.find(
+      (_import) => _import.absolutePath === importSource.absolutePath
+    );
+    if (!directive) {
+      const srcPath = getDir(sourceUnit.absolutePath);
+      const directive = this.makeImportDirective(
+        getRelativePath(srcPath, importSource.absolutePath),
+        importSource.absolutePath,
+        "",
+        symbolAliases,
+        sourceUnit.id,
+        importSource.id
+      );
+      const pragma = last(
+        sourceUnit.getChildrenByTypeString("PragmaDirective")
+      );
+
+      if (pragma) {
+        sourceUnit.insertAfter(pragma, directive);
+      } else {
+        sourceUnit.insertAtBeginning(directive);
+      }
+    } else {
+      for (const _symbol of directive.symbolAliases) {
+        if (
+          !directive.symbolAliases.find(
+            (s) => symbolAliasToId(s) === symbolAliasToId(_symbol)
+          )
+        ) {
+          directive.symbolAliases.push(_symbol);
+        }
+      }
+    }
+  }
+
+  getRequiredImports(fn: FunctionDefinition, sourceUnit: SourceUnit) {
+    const children = NodeQ.from(fn).find("UserDefinedTypeName");
+    const importsNeeded = children.reduce((importDirectives, childType) => {
+      const child = childType.vReferencedDeclaration as UserDefinition;
+      if (child.vScope.id === fn.vScope.id) {
+        return importDirectives;
+      }
+      const parent = getParentSourceUnit(child);
+      if (!importDirectives[parent.id]) {
+        importDirectives[parent.id] = [];
+      }
+      // If child scoped to file, import child directly.
+      // If contract, import contract.
+      const foreignSymbol = this.makeIdentifierFor(
+        child.vScope.type === "SourceUnit"
+          ? child
+          : (child.vScope as ContractDefinition)
+      );
+      if (
+        child.vScope.type === "SourceUnit" &&
+        parent.absolutePath === sourceUnit.absolutePath
+      ) {
+        return importDirectives;
+      }
+      importDirectives[parent.id].push({
+        foreign: foreignSymbol,
+      } as SymbolAlias);
+      return importDirectives;
+    }, {} as Record<number, SymbolAlias[]>);
+    const entries = Object.entries(importsNeeded);
+    for (const [sourceId, symbolAliases] of entries) {
+      const importSource = this.context.locate(+sourceId) as SourceUnit;
+      this.addImports(sourceUnit, importSource, symbolAliases);
+    }
+  }
 
   declareConstant(
     name: string,
@@ -111,6 +205,20 @@ export class Factory extends ASTNodeFactory {
       utf8ToHex(value),
       value
     );
+  }
+
+  getConstant(node: ASTNode, name: string, value: string | number) {
+    const sourceUnit = getParentSourceUnit(node);
+    let existingConstant = findConstantDeclaration(sourceUnit, name);
+    if (!existingConstant) {
+      existingConstant = this.makeConstantUint256(name, value, sourceUnit.id);
+      sourceUnit.appendChild(existingConstant);
+    }
+    return this.makeIdentifierFor(existingConstant);
+  }
+
+  getYulConstant(node: ASTNode, name: string, value: string | number) {
+    return this.yul.identifierFor(this.getConstant(node, name, value));
   }
 
   makeTypeNameUint256() {
