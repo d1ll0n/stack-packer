@@ -1,0 +1,69 @@
+export class YulIterator {
+  identifier: YulIdentifier;
+  lastEntry?: YulAssignment;
+  getCount = 0;
+
+  // eslint-disable-next-line no-useless-constructor
+  constructor(
+    public $: YulNodeFactory,
+    public code: YulNode[],
+    public name: string,
+    public lastValue?: CastableToIdentifierOrLiteral
+  ) {
+    this.identifier = this.$.identifier(name);
+  }
+
+  get() {
+    if (this.getCount++) {
+    }
+    return this.code;
+  }
+
+  set(value: CastableToIdentifierOrLiteral) {
+    if (this.lastValue) {
+    }
+    this.lastValue = value;
+  }
+}
+
+/*
+field1.head
+field2
+field3.head
+
+
+mstore(0x20, field2)
+
+let structPtr := mload(0x40)
+calldatacopy(structPtr, structCdPtr, headCopySize)
+let nextTailPtr := add(freePtr, headCopySize)
+
+if (field is array) {
+  let cdPtrHead := add(structCdPtr, headOffset)
+  let cdPtrTail := add(structCdPtr, calldataload(cdPtrHead))
+  let mPtrHead := add(structPtr, headOffset)
+
+  if (baseType is dynamic) {
+
+  } else {
+    add(calldataload(cdPtrTail))
+  }
+}
+
+
+
+if (staticFields > 1 && staticFields > dynamicFields)
+
+*/
+// export const
+
+// export const addPositionDataToFunctionParameters = ()
+
+// const getExpressionSetPtrToOffset = (
+//   parentPtrExpression
+// )
+
+/*
+If struct size
+
+*/
