@@ -1,16 +1,23 @@
 /* eslint-disable no-redeclare */
 /* eslint-disable no-useless-constructor */
 /* eslint-disable no-dupe-class-members */
-import { CastableToIdentifierOrLiteral } from "./utils";
-import { coerceArray } from "../../lib/text";
-import { ExpressionAccessors, withExpressionAccessors } from "./arithmetic";
 import {
+  ASTNode,
   InlineAssembly,
   LiteralKind,
   SourceFormatter,
   StructuredDocumentation,
   VariableDeclaration,
 } from "solc-typed-ast";
+import {
+  CastableToIdentifierOrLiteral,
+  definitelyIdentifierList,
+  isConstant,
+  makeYulIdentifier,
+  makeYulLiteral,
+} from "./utils";
+import { coerceArray } from "../../lib/text";
+import { ExpressionAccessors, withExpressionAccessors } from "./arithmetic";
 import { MaybeArray } from "../../lib/array";
 import { YulNodeFactory } from "./factory";
 import { YulXPath } from "./xpath";
@@ -50,10 +57,21 @@ export type YulGenericIdentifier = YulIdentifier | YulTypedName;
 
 let randomId = 100000;
 
-export class BaseYulNode {
-  documentation?: string[];
+function renderDocs(text: string, formatter: SourceFormatter) {
+  const indent = formatter.renderIndent();
+  const prefix = "/// ";
 
-  constructor(public id = ++randomId, public src = "0:0:0") {}
+  const documentation = text.replace(/\n/g, (sub) => sub + indent + prefix);
+
+  return prefix + documentation;
+}
+
+export class BaseYulNode extends ASTNode {
+  documentation?: string | string[];
+
+  constructor(public id = ++randomId, public src = "0:0:0") {
+    super(id, src);
+  }
 
   /**
    * Returns children nodes of the current node
@@ -98,7 +116,8 @@ export class BaseYulNode {
         if (
           descriptor &&
           typeof descriptor.get === "function" &&
-          !getters.includes(name)
+          !getters.includes(name) &&
+          name !== "requiredContext"
         ) {
           getters.push(name);
         }
@@ -121,16 +140,27 @@ export class BaseYulNode {
   }
 
   write(formatter: SourceFormatter): string {
-    return this.writeNode(formatter);
+    const inner = [this.writeNode(formatter)];
+    const indent = formatter.renderIndent();
+    if (this.documentation) {
+      inner[0] = indent + inner[0];
+      const doc = coerceArray(this.documentation).join("\n");
+      inner.unshift(doc);
+    }
+    return inner.join(formatter.renderWrap());
   }
 
   writeNode(formatter: SourceFormatter) {
     return "";
   }
 }
-
 export class YulBlock extends BaseYulNode {
   nodeType: "YulBlock" = "YulBlock";
+
+  get type(): "YulBlock" {
+    return this.nodeType;
+  }
+
   factory?: YulNodeFactory;
   public statements: YulNode[] = [];
 
@@ -141,9 +171,11 @@ export class YulBlock extends BaseYulNode {
       | YulIf
       | YulForLoop
       | YulFunctionDefinition
-      | InlineAssembly
+      | InlineAssembly,
+    id?: number,
+    src?: string
   ) {
-    super();
+    super(id, src);
     for (const stmt of stmts) {
       this.appendChild(stmt);
     }
@@ -205,30 +237,88 @@ export class YulBlock extends BaseYulNode {
     return exists;
   }
 
-  let(names: string, node: CastableToIdentifierOrLiteral): YulIdentifier;
-  let(names: string[], node: CastableToIdentifierOrLiteral): YulIdentifier[];
-  let(names: MaybeArray<string>, node: CastableToIdentifierOrLiteral) {
-    if (this.factory.isConstant(node)) {
-      if (typeof node !== "object") node = this.factory.literal(node);
-    }
-    this.statements.push(this.factory.let(names, node as YulNode));
-    if (!Array.isArray(names)) return this.factory.identifier(names);
-    return names.map((name) => this.factory.identifier(name));
+  addFunction(
+    name: string,
+    parameters: (string | YulIdentifier)[],
+    returnVariables: (string | YulIdentifier)[],
+    body: YulBlock = new YulBlock([])
+  ) {
+    const fnDef = new YulFunctionDefinition(
+      name,
+      definitelyIdentifierList(parameters),
+      definitelyIdentifierList(returnVariables),
+      body,
+      this
+    );
+    body.parent = fnDef;
+    // const fn =
+    return this.addFunctionIfNotExists(fnDef);
+    // return new YulIdentifier(fn.name, fn);
   }
 
-  set(nodes: YulIdentifier | string, value: YulExpression): YulIdentifier;
-  set(nodes: (YulIdentifier | string)[], value: YulExpression): YulIdentifier[];
-  set(nodes: MaybeArray<YulIdentifier | string>, value: YulExpression) {
+  let(
+    names: string,
+    node: CastableToIdentifierOrLiteral,
+    documentation?: string | string[]
+  ): YulIdentifier;
+
+  let(
+    names: string[],
+    node: CastableToIdentifierOrLiteral,
+    documentation?: string | string[]
+  ): YulIdentifier[];
+
+  let(
+    names: MaybeArray<string>,
+    node: CastableToIdentifierOrLiteral,
+    documentation?: string | string[]
+  ) {
+    if (isConstant(node)) {
+      if (typeof node !== "object") node = makeYulLiteral(node);
+    }
+    const decl = new YulVariableDeclaration(
+      definitelyIdentifierList(names) as YulGenericIdentifier[],
+      node as YulNode
+    );
+    decl.documentation = documentation;
+    this.statements.push(decl);
+    // this.factory.let(names, node as YulNode));
+    if (!Array.isArray(names)) return makeYulIdentifier(names);
+    return names.map((name) => makeYulIdentifier(name));
+  }
+
+  set(
+    nodes: YulIdentifier | string,
+    value: YulExpression,
+    documentation?: string | string[]
+  ): YulIdentifier;
+
+  set(
+    nodes: (YulIdentifier | string)[],
+    value: YulExpression,
+    documentation?: string | string[]
+  ): YulIdentifier[];
+
+  set(
+    nodes: MaybeArray<YulIdentifier | string>,
+    value: YulExpression,
+    documentation?: string | string[]
+  ) {
     // set(node: YulIdentifier | string, value: YulExpression) {
     const identifiers = Array.isArray(nodes)
       ? nodes.map((node) =>
-          node instanceof YulIdentifier ? node : this.factory.identifier(node)
+          node instanceof YulIdentifier ? node : makeYulIdentifier(node)
         )
       : nodes;
     if (coerceArray(nodes).some((n) => n instanceof YulIdentifier)) {
-      this.appendChild(this.factory.assignment(nodes, value));
+      const assignment = new YulAssignment(
+        definitelyIdentifierList(nodes),
+        value
+      );
+      this.appendChild(assignment);
+      assignment.documentation = documentation;
     } else {
-      this.let(nodes as string[], value);
+      this.let(nodes as string[], value, documentation);
     }
 
     return identifiers;
@@ -253,13 +343,20 @@ export class YulBlock extends BaseYulNode {
 @withExpressionAccessors
 export class YulLiteral extends BaseYulNode /* implements CanArithmetic */ {
   nodeType: "YulLiteral" = "YulLiteral";
-  type: string = "";
+
+  get type(): "YulLiteral" {
+    return this.nodeType;
+  }
+
   constructor(
     public kind: LiteralKind,
     public value?: string | number,
-    public hexValue?: string
+    public hexValue?: string,
+    public typeString?: string,
+    id?: number,
+    src?: string
   ) {
-    super();
+    super(id, src);
   }
 
   writeNode(formatter: SourceFormatter) {
@@ -277,7 +374,9 @@ export class YulLiteral extends BaseYulNode /* implements CanArithmetic */ {
     } else {
       result = this.value;
     }
-    return this.type !== "" ? result + ":" + this.type : result;
+
+    const typeSuffix = this.typeString ? ":" + this.typeString : "";
+    return result + typeSuffix;
   }
 }
 export interface YulLiteral extends ExpressionAccessors {}
@@ -285,11 +384,18 @@ export interface YulLiteral extends ExpressionAccessors {}
 @withExpressionAccessors
 export class YulIdentifier extends BaseYulNode {
   nodeType: "YulIdentifier" = "YulIdentifier";
+
+  get type(): "YulIdentifier" {
+    return this.nodeType;
+  }
+
   constructor(
     public name: string,
-    public vReferencedDeclaration?: VariableDeclaration | YulFunctionDefinition
+    public vReferencedDeclaration?: VariableDeclaration | YulFunctionDefinition,
+    id?: number,
+    src?: string
   ) {
-    super();
+    super(id, src);
   }
 
   writeNode(formatter: SourceFormatter) {
@@ -301,14 +407,23 @@ export interface YulIdentifier extends ExpressionAccessors {}
 @withExpressionAccessors
 export class YulTypedName extends BaseYulNode {
   nodeType: "YulTypedName" = "YulTypedName";
-  type: string = ""; // should be empty string
 
-  constructor(public name: string) {
-    super();
+  get type(): "YulTypedName" {
+    return this.nodeType;
+  }
+
+  constructor(
+    public name: string,
+    public typeString?: string,
+    id?: number,
+    src?: string
+  ) {
+    super(id, src);
   }
 
   writeNode(formatter: SourceFormatter) {
-    return this.type !== "" ? this.name + ":" + this.type : this.name;
+    const typeSuffix = this.typeString ? ":" + this.typeString : "";
+    return this.name + typeSuffix;
   }
 }
 export interface YulTypedName extends ExpressionAccessors {}
@@ -316,9 +431,19 @@ export interface YulTypedName extends ExpressionAccessors {}
 @withExpressionAccessors
 export class YulFunctionCall extends BaseYulNode {
   nodeType: "YulFunctionCall" = "YulFunctionCall";
+
+  get type(): "YulFunctionCall" {
+    return this.nodeType;
+  }
+
   public arguments: YulNode[];
-  constructor(public functionName: YulIdentifier, _arguments: YulNode[]) {
-    super();
+  constructor(
+    public functionName: YulIdentifier,
+    _arguments: YulNode[],
+    id?: number,
+    src?: string
+  ) {
+    super(id, src);
     this.arguments = _arguments;
   }
 
@@ -340,9 +465,19 @@ export interface YulFunctionCall extends ExpressionAccessors {}
 
 export class YulVariableDeclaration extends BaseYulNode {
   nodeType: "YulVariableDeclaration" = "YulVariableDeclaration";
-  type: string = "";
-  constructor(public variables: YulNode[], public value: YulNode) {
-    super();
+
+  get type(): "YulVariableDeclaration" {
+    return this.nodeType;
+  }
+
+  constructor(
+    public variables: YulNode[],
+    public value: YulNode,
+    public typeString?: string,
+    id?: number,
+    src?: string
+  ) {
+    super(id, src);
   }
 
   get children() {
@@ -359,8 +494,13 @@ export class YulVariableDeclaration extends BaseYulNode {
 
 export class YulExpressionStatement extends BaseYulNode {
   nodeType: "YulExpressionStatement" = "YulExpressionStatement";
-  constructor(public expression: YulNode) {
-    super();
+
+  get type(): "YulExpressionStatement" {
+    return this.nodeType;
+  }
+
+  constructor(public expression: YulNode, id?: number, src?: string) {
+    super(id, src);
   }
 
   get children() {
@@ -374,11 +514,18 @@ export class YulExpressionStatement extends BaseYulNode {
 
 export class YulAssignment extends BaseYulNode {
   nodeType: "YulAssignment" = "YulAssignment";
+
+  get type(): "YulAssignment" {
+    return this.nodeType;
+  }
+
   constructor(
     public variableNames: YulGenericIdentifier[],
-    public value: YulNode
+    public value: YulNode,
+    id?: number,
+    src?: string
   ) {
-    super();
+    super(id, src);
   }
 
   get children() {
@@ -395,12 +542,18 @@ export class YulAssignment extends BaseYulNode {
 export class YulIf extends BaseYulNode {
   nodeType: "YulIf" = "YulIf";
 
+  get type(): "YulIf" {
+    return this.nodeType;
+  }
+
   constructor(
     public condition: YulNode,
     public body: YulNode,
-    public parent?: YulBlock
+    public parent?: YulBlock,
+    id?: number,
+    src?: string
   ) {
-    super();
+    super(id, src);
   }
 
   get children() {
@@ -416,12 +569,19 @@ export class YulIf extends BaseYulNode {
 
 export class YulCase extends BaseYulNode {
   nodeType: "YulCase" = "YulCase";
+
+  get type(): "YulCase" {
+    return this.nodeType;
+  }
+
   constructor(
     public value: "default" | YulLiteral,
     public body: YulNode,
-    public parent?: YulSwitch
+    public parent?: YulSwitch,
+    id?: number,
+    src?: string
   ) {
-    super();
+    super(id, src);
   }
 
   get children() {
@@ -440,12 +600,19 @@ export class YulCase extends BaseYulNode {
 
 export class YulSwitch extends BaseYulNode {
   nodeType: "YulSwitch" = "YulSwitch";
+
+  get type(): "YulSwitch" {
+    return this.nodeType;
+  }
+
   constructor(
     public expression: YulNode,
     public cases: YulCase[],
-    public parent?: YulBlock
+    public parent?: YulBlock,
+    id?: number,
+    src?: string
   ) {
-    super();
+    super(id, src);
     for (const _case of cases) {
       _case.parent = this;
     }
@@ -468,6 +635,11 @@ export class YulSwitch extends BaseYulNode {
 
 export class YulContinue extends BaseYulNode {
   nodeType: "YulContinue" = "YulContinue";
+
+  get type(): "YulContinue" {
+    return this.nodeType;
+  }
+
   writeNode(formatter: SourceFormatter) {
     return "continue";
   }
@@ -475,6 +647,11 @@ export class YulContinue extends BaseYulNode {
 
 export class YulBreak extends BaseYulNode {
   nodeType: "YulBreak" = "YulBreak";
+
+  get type(): "YulBreak" {
+    return this.nodeType;
+  }
+
   writeNode(formatter: SourceFormatter) {
     return "break";
   }
@@ -482,6 +659,11 @@ export class YulBreak extends BaseYulNode {
 
 export class YulLeave extends BaseYulNode {
   nodeType: "YulLeave" = "YulLeave";
+
+  get type(): "YulLeave" {
+    return this.nodeType;
+  }
+
   writeNode(formatter: SourceFormatter) {
     return "leave";
   }
@@ -490,14 +672,20 @@ export class YulLeave extends BaseYulNode {
 export class YulForLoop extends BaseYulNode {
   nodeType: "YulForLoop" = "YulForLoop";
 
+  get type(): "YulForLoop" {
+    return this.nodeType;
+  }
+
   constructor(
     public pre: YulBlock,
     public condition: YulExpression,
     public post: YulBlock,
     public body: YulBlock,
-    public parent?: YulBlock
+    public parent?: YulBlock,
+    id?: number,
+    src?: string
   ) {
-    super();
+    super(id, src);
   }
 
   get children() {
@@ -515,18 +703,29 @@ export class YulForLoop extends BaseYulNode {
 
 export class YulFunctionDefinition extends BaseYulNode {
   nodeType: "YulFunctionDefinition" = "YulFunctionDefinition";
+
+  get type(): "YulFunctionDefinition" {
+    return this.nodeType;
+  }
+
   constructor(
     public name: string,
     public parameters: YulIdentifier[],
     public returnVariables: YulIdentifier[],
     public body: YulBlock,
-    public parent?: YulBlock
+    public parent?: YulBlock,
+    id?: number,
+    src?: string
   ) {
-    super();
+    super(id, src);
   }
 
   get children() {
     return this.pickNodes(this.parameters, this.returnVariables, this.body);
+  }
+
+  call(parameters: YulExpression[]) {
+    return new YulFunctionCall(makeYulIdentifier(this.name), parameters);
   }
 
   writeNode(formatter: SourceFormatter) {
