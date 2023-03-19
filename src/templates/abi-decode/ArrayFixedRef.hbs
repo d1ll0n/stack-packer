@@ -1,0 +1,38 @@
+<pre>
+function abi_decode{{ternary type.dynamic "_dyn" ""}}_array_{{type.name}}(cdPtrParent, mPtrParent, headOffset) {
+  let cdPtrLength := add(
+    cdPtrParent,
+    calldataload(add(cdPtrParent, headOffset))
+  )
+  let arrLength := calldataload(cdPtrLength)
+  let mPtrLength := mload(0x40)
+    
+  mstore(mPtrLength, arrLength)
+  mstore(add(mPtrParent, headOffset), mPtrLength)
+  let mPtrHead := add(mPtrLength, 32)
+  let mPtrTail := add(mPtrHead, {{ternary type.dynamic "mul(arrLength, 0x20)" type.headSizeRef}})
+  let mPtrTailNext := mPtrTail
+    
+  // Copy elements to memory
+  // Calldata does not have individual offsets for array elements with a fixed size.
+  calldatacopy(
+    mPtrTail,
+    add(cdPtrLength, 0x20),
+    {{ternary type.dynamic "mul(arrLength, 0xa0)" type.tailSizeRef}}
+  )
+  {{#if type.dynamic}}
+  {{else}}
+  mstore(mPtr, add(mPtr, {{ type.headSizeRef }})
+  {{#each (pointersList type.length type.baseTypeSize)}}
+      mstore(add(mPtr, ))
+  {{/each}}
+  {{/if}}
+  
+  for {} lt(mPtrHead, mPtrTail) {} {
+    mstore(mPtrHead, mPtrTailNext)
+    mPtrHead := add(mPtrHead, 0x20)
+    mPtrTailNext := add(mPtrTailNext, 0xa0)
+  }
+  mstore(0x40, mPtrTailNext)
+}
+</pre>

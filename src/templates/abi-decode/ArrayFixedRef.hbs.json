@@ -1,0 +1,15 @@
+{
+  "type": {
+    "dynamic": false,
+    "length": 5,
+    "baseTypeSize": 64,
+    "tailSizeRef": "FixedArray5_TailSize",
+    "headSizeRef": "FixedArray5_HeadSize",
+    "memorySizeRef": "FixedArray5_TotalSize",
+    "name": "MyArray",
+    "sizeRef": "MyArraySize",
+    "arr": [
+      1, 2
+    ]
+  }
+}
